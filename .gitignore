@@ -1,0 +1,16 @@
+.state/
+.tmp/
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+.env
+.env.*
+*.pem
+*.key
+*.log
+dist/
+build/
+evidence/live-smoke*/receipt.json

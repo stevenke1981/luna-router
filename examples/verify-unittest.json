@@ -1,0 +1,4 @@
+{
+  "argv": ["python", "-m", "unittest", "discover", "-s", "tests"],
+  "timeout_seconds": 300
+}

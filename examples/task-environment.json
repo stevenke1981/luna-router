@@ -1,0 +1,10 @@
+{
+  "objective": "上一次任務因缺少工具而停止。確認目前可用的本地工具與既有安裝方式，提供最小修復；不要因工具缺少而提高模型推理等級。",
+  "kind": "debugging",
+  "complexity": 2,
+  "risk": "medium",
+  "needs_tools": true,
+  "data_policy": "no_external",
+  "implementation_failures": 1,
+  "failure_kind": "environment"
+}

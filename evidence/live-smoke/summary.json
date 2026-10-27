@@ -1,0 +1,20 @@
+{
+  "layers": {
+    "decision": {
+      "passed": true,
+      "response_id": "gen-dec-1793072588-UWDjqYua8KRz4mX86R5n"
+    },
+    "worker_started": {
+      "passed": true
+    },
+    "turn_completed": {
+      "passed": true
+    },
+    "independent_acceptance": {
+      "passed": false
+    }
+  },
+  "passed": false,
+  "returncode": 0,
+  "error": "JSONDecodeError"
+}

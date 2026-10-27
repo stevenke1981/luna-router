@@ -1,0 +1,12 @@
+{
+  "objective": "修復重現穩定的跨執行緒競態：先前一次實作修正未通過相同測試。請以最小案例確認假設並修復，不反覆做全專案審查。",
+  "summary": "跨執行緒競態，有可重現案例，先前一次實作失敗，需要深入除錯。",
+  "summary_approved": true,
+  "kind": "debugging",
+  "complexity": 3,
+  "risk": "medium",
+  "needs_tools": true,
+  "data_policy": "metadata_only",
+  "implementation_failures": 1,
+  "failure_kind": "implementation"
+}

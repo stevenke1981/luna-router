@@ -1,0 +1,15 @@
+{
+  "version": "2.7.0",
+  "routing_default": "luna",
+  "openrouter_key_present": false,
+  "openrouter_key_source": "missing",
+  "entrypoint": "/mnt/data/luna-router-v2.7.0/router.py",
+  "online_required_by_default": true,
+  "codex_found": false,
+  "codex_auth_mode": "unknown",
+  "model_list": "not_checked",
+  "model_count": null,
+  "discovery_error": null,
+  "default_cli_fallback_possible": false,
+  "no_model_inference_performed": true
+}

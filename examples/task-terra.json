@@ -1,0 +1,9 @@
+{
+  "objective": "用既有 GPT-5.6 Terra 流程整理這個專案的功能規格，保留同一模型以利與舊結果比較。",
+  "kind": "documentation",
+  "complexity": 2,
+  "risk": "medium",
+  "needs_tools": true,
+  "requested_model": "gpt-5.6-terra",
+  "data_policy": "no_external"
+}

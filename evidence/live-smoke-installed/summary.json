@@ -1,0 +1,20 @@
+{
+  "layers": {
+    "decision": {
+      "passed": true,
+      "response_id": "gen-dec-1793072919-xOPGkegpy9EKIT3jzDYk"
+    },
+    "worker_started": {
+      "passed": true
+    },
+    "turn_completed": {
+      "passed": true
+    },
+    "independent_acceptance": {
+      "passed": true
+    }
+  },
+  "passed": true,
+  "returncode": 0,
+  "router_reason": "accepted"
+}

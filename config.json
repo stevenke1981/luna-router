@@ -1,0 +1,174 @@
+{
+  "version": "2.7.0",
+  "verified_date": "2026-10-27",
+  "decision": {
+    "model": "openai/gpt-6-luna-decisions",
+    "enabled": true
+  },
+  "policy": {
+    "max_effort": "max",
+    "allow_legacy_auto": false,
+    "requests_per_minute": 18,
+    "free_requests_per_utc_day": 40,
+    "decision_requests_per_utc_day": 1000,
+    "requests_per_job": 3,
+    "decision_cache_seconds": 1800,
+    "block_low_certainty": false,
+    "local_effort_floor": false,
+    "dynamic_free_profiles": true,
+    "max_dynamic_free_candidates": 16
+  },
+  "gpt_profiles": [
+    {
+      "id": "gpt-6-luna",
+      "family": "luna",
+      "priority": 10,
+      "legacy": false,
+      "description": "Preferred for focused summaries, extraction, translation, routine documents and small verified changes. Subscription consumption is not inferred from API prices."
+    },
+    {
+      "id": "gpt-6.1-sol",
+      "family": "sol",
+      "priority": 20,
+      "legacy": false,
+      "description": "Preferred implementation worker for Rust/Slint, Java, debugging, multi-file changes, tool workflows and professional work. Start at a sufficient moderate effort."
+    },
+    {
+      "id": "gpt-6-astra",
+      "family": "astra",
+      "priority": 50,
+      "legacy": false,
+      "description": "Use for difficult ambiguous problems, conflicting evidence, cross-system invariants and proven implementation failures. Do not select merely because it is the largest model."
+    },
+    {
+      "id": "gpt-6-sol",
+      "family": "sol",
+      "priority": 30,
+      "legacy": true,
+      "description": "Compatibility or availability alternative to GPT-6.1 Sol; prefer only when pinned, locally validated as better, or the modern Sol candidate is unavailable."
+    },
+    {
+      "id": "gpt-5.6-luna",
+      "family": "luna",
+      "priority": 35,
+      "legacy": true,
+      "description": "GPT-5.6 compatibility candidate for focused routine work; use when explicitly required or newer Luna is unavailable."
+    },
+    {
+      "id": "gpt-5.6-terra",
+      "family": "terra",
+      "priority": 40,
+      "legacy": true,
+      "description": "Balanced legacy GPT-5.6 candidate for a verified Terra workflow or when Sol is unavailable. The name Terra does not imply lower cost than GPT-6.1 Sol."
+    },
+    {
+      "id": "gpt-5.6-sol",
+      "family": "sol",
+      "priority": 45,
+      "legacy": true,
+      "description": "Legacy GPT-5.6 implementation candidate for explicit compatibility or unavailable newer Sol models."
+    }
+  ],
+  "free_profiles": [
+    {
+      "id": "recursive/flint-v1.0:free",
+      "priority": 10,
+      "enabled": true,
+      "max_complexity": 2,
+      "kinds": [
+        "coding",
+        "debugging",
+        "documentation"
+      ],
+      "description": "Experimental free candidate for self-contained code suggestions and test drafts. This reference worker returns text and does not execute local tools. Local quality is not benchmarked."
+    },
+    {
+      "id": "xingchen-agi/xing4.0-29b-a4b:free",
+      "priority": 20,
+      "enabled": true,
+      "max_complexity": 2,
+      "kinds": [
+        "general",
+        "summary",
+        "translation",
+        "extraction",
+        "classification",
+        "documentation",
+        "coding"
+      ],
+      "description": "Experimental free text candidate for public, reversible, self-contained work; not a measured replacement for a GPT tier."
+    },
+    {
+      "id": "google/gemma-4-31b-it:free",
+      "priority": 30,
+      "enabled": true,
+      "max_complexity": 1,
+      "kinds": [
+        "general",
+        "summary",
+        "translation",
+        "extraction",
+        "classification",
+        "documentation"
+      ],
+      "description": "Experimental free candidate for simple public text transformations. This reference adapter sends text only."
+    },
+    {
+      "id": "nvidia/nemotron-3-super-120b-a12b:free",
+      "priority": 40,
+      "enabled": true,
+      "max_complexity": 2,
+      "kinds": [
+        "general",
+        "summary",
+        "extraction",
+        "classification",
+        "documentation",
+        "coding"
+      ],
+      "description": "Experimental free candidate for bounded public text tasks; retain only if task acceptance and measured latency are adequate."
+    },
+    {
+      "id": "nvidia/nemotron-3.5-super-vl:free",
+      "priority": 50,
+      "enabled": false,
+      "max_complexity": 2,
+      "kinds": [
+        "visual_qa"
+      ],
+      "description": "Catalogued vision candidate for a future image-aware worker. Disabled: this release does not transport images."
+    },
+    {
+      "id": "openrouter/free",
+      "priority": 99,
+      "enabled": false,
+      "max_complexity": 1,
+      "kinds": [
+        "general",
+        "summary",
+        "translation"
+      ],
+      "description": "Optional random free-model router. Disabled by default because its actual model varies; enable only for experiments and record response.model."
+    }
+  ],
+  "fee_control": {
+    "openai_router": {
+      "enabled": true,
+      "max_request_cost_usd": "0.01",
+      "max_daily_cost_usd": "0.10"
+    }
+  },
+  "escalation": {
+    "max_auto_attempts": 20,
+    "verifier_timeout_seconds": 300
+  },
+  "routing": {
+    "default_mode": "luna",
+    "automatic_metadata_decisions": true,
+    "allow_codex_cli_default_fallback": true,
+    "use_openrouter_only_when_key_present": true,
+    "note": "auto/luna require successful online Luna; local only via explicit --offline/--routing local. Missing key is an error. Fixed metadata only by default.",
+    "require_luna_for_auto": true,
+    "new_job_fresh_decision": true
+  }
+}

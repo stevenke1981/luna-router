@@ -1,0 +1,11 @@
+{
+  "objective": "在目前專案修復 Rust/Slint UI 更新狀態不同步的問題。先找出可重現的狀況，做最小修正，執行相關測試，最後列出改動與驗證結果。",
+  "summary": "Rust/Slint 專案：單一功能的 UI 狀態同步錯誤，需要修改程式與執行針對性測試。",
+  "summary_approved": true,
+  "kind": "debugging",
+  "complexity": 2,
+  "risk": "medium",
+  "needs_tools": true,
+  "data_policy": "metadata_only",
+  "output_tokens": 2048
+}

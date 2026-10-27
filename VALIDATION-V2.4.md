@@ -1,0 +1,1 @@
+Version 2.4.0: 195 unittest cases passed locally (including ten new checkpoint-controller cases). Live X video inspection and actual Codex in-flight switching were NOT tested. `router.py` retains original v2.3 execution behavior.

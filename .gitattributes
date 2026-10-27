@@ -1,0 +1,4 @@
+# Preserve release-manifest bytes on every OS; checkout must not rewrite newlines.
+* -text whitespace=cr-at-eol
+# A unified diff represents empty context lines with a required leading space.
+PATCH.diff whitespace=-blank-at-eol,cr-at-eol

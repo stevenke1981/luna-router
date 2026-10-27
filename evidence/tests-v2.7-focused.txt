@@ -1,0 +1,9 @@
+{"event": "routing_started", "version": "2.7.0", "mode": "luna", "required_online": true, "entrypoint": "/mnt/data/luna-router-v2.7.0/router.py", "key_source": "process"}
+{"event": "luna_request_started", "version": "2.7.0", "model": "openai/gpt-6-luna-decisions", "endpoint": "/api/alpha/decisions"}
+{"event": "luna_response_received", "version": "2.7.0", "model": "openai/gpt-6-luna-decisions", "response_id": "fixture-luna-1"}
+{"event": "worker_dispatch", "version": "2.7.0", "backend": "codex", "requested_model": "gpt-6.1-sol", "requested_effort": "high"}
+{"event": "luna_request_started", "version": "2.7.0", "operation": "probe", "model": "openai/gpt-6-luna-decisions"}
+----------------------------------------------------------------------
+Ran 28 tests in 53.514s
+
+OK

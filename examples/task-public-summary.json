@@ -1,0 +1,9 @@
+{
+  "objective": "請用繁體中文將以下公開範例整理為三個重點，不新增事實：織帶工廠先接收訂單，依規格備紗與設定機台，完成織造後檢查寬度、顏色與長度，最後包裝出貨。",
+  "kind": "summary",
+  "complexity": 1,
+  "risk": "low",
+  "needs_tools": false,
+  "data_policy": "public",
+  "output_tokens": 512
+}

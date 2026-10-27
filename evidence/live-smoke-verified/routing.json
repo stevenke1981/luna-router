@@ -1,0 +1,61 @@
+{
+  "plan": {
+    "version": "2.7.0",
+    "status": "planned",
+    "decision_source": "luna_decisions",
+    "simulation": false,
+    "selected_model": "gpt-6-luna",
+    "backend": "codex",
+    "requested_effort": "low",
+    "effort_note": "native_codex_setting_requested",
+    "reason": "accepted",
+    "candidate_count": 3,
+    "decision_model": "openai/gpt-6-luna-decisions",
+    "decision_metrics": {
+      "model": "openai/gpt-6-luna-decisions-20261006",
+      "selected_id": "gpt-6-luna",
+      "effort": "low",
+      "probability": 0.64,
+      "margin": 0.44,
+      "reported_confidence": 0.46,
+      "effort_probability": 0.62
+    },
+    "decision_cost": {
+      "new_request": true,
+      "reported_cost_usd": "0.000055",
+      "local_fee_check": false,
+      "cost_owner": "openrouter",
+      "account_limit_verified": false
+    },
+    "notes": [
+      "luna_low_certainty_accepted",
+      {
+        "codex_model_list_count": 8
+      },
+      {
+        "routing_mode": "luna",
+        "remote_decision_enabled": true
+      }
+    ],
+    "decision_call_attempted": true,
+    "decision_response_received": true,
+    "decision_model_called": true,
+    "decision_response_id": "gen-dec-1793072809-LlBvKixZMDABxyOIVRG3",
+    "require_luna": true,
+    "validation_status": "not_executed"
+  },
+  "execution": {
+    "requested_model": "gpt-6-luna",
+    "requested_effort": "low",
+    "status": "turn_completed",
+    "exit_code": 0,
+    "thread_id": "01a17b77-c8d9-7651-8fa7-83c1c2803ab9",
+    "worker_started": true,
+    "actual_model": null,
+    "actual_effort": null
+  },
+  "worker_started": true,
+  "worker_completed": true,
+  "independent_acceptance": "passed",
+  "model_switch_verified": false
+}

@@ -1,0 +1,112 @@
+{
+  "source": "DEMO ONLY: simulated capabilities, not a live account response",
+  "simulation": true,
+  "auth_mode": "unknown",
+  "models": [
+    {
+      "id": "gpt-6-luna",
+      "efforts": [
+        "low",
+        "medium",
+        "high",
+        "xhigh"
+      ],
+      "default_effort": "medium",
+      "input_modalities": [
+        "text",
+        "image"
+      ],
+      "description": "Offline fixture only"
+    },
+    {
+      "id": "gpt-6.1-sol",
+      "efforts": [
+        "low",
+        "medium",
+        "high",
+        "xhigh"
+      ],
+      "default_effort": "medium",
+      "input_modalities": [
+        "text",
+        "image"
+      ],
+      "description": "Offline fixture only"
+    },
+    {
+      "id": "gpt-6-astra",
+      "efforts": [
+        "low",
+        "medium",
+        "high",
+        "xhigh"
+      ],
+      "default_effort": "medium",
+      "input_modalities": [
+        "text",
+        "image"
+      ],
+      "description": "Offline fixture only"
+    },
+    {
+      "id": "gpt-6-sol",
+      "efforts": [
+        "low",
+        "medium",
+        "high",
+        "xhigh"
+      ],
+      "default_effort": "medium",
+      "input_modalities": [
+        "text",
+        "image"
+      ],
+      "description": "Offline fixture only"
+    },
+    {
+      "id": "gpt-5.6-luna",
+      "efforts": [
+        "low",
+        "medium",
+        "high",
+        "xhigh"
+      ],
+      "default_effort": "medium",
+      "input_modalities": [
+        "text",
+        "image"
+      ],
+      "description": "Offline fixture only"
+    },
+    {
+      "id": "gpt-5.6-terra",
+      "efforts": [
+        "low",
+        "medium",
+        "high",
+        "xhigh"
+      ],
+      "default_effort": "medium",
+      "input_modalities": [
+        "text",
+        "image"
+      ],
+      "description": "Offline fixture only"
+    },
+    {
+      "id": "gpt-5.6-sol",
+      "efforts": [
+        "low",
+        "medium",
+        "high",
+        "xhigh"
+      ],
+      "default_effort": "medium",
+      "input_modalities": [
+        "text",
+        "image"
+      ],
+      "description": "Offline fixture only"
+    }
+  ]
+}

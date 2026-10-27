@@ -1,0 +1,1042 @@
+--- v2.6.0/router.py
++++ v2.7.0/router.py
+@@ -1,5 +1,5 @@
+ #!/usr/bin/env python3
+-"""Luna Router 2.6: Auto Routing is the default for routed Codex execution."""
++"""Luna Router 2.7: require online Luna, then dispatch; no silent local fallback."""
+ from __future__ import annotations
+ 
+ import argparse
+@@ -15,6 +15,7 @@
+ import uuid
+ 
+ import codex_backend
++from credentials import resolve_key, key_status
+ import openrouter_backend as orb
+ from decision import DECISION_MODEL, assess_decision, build_request, parse_response
+ from escalation import RetryStore, hash_evidence_file, summarize, task_fingerprint, validate_job_id
+@@ -25,20 +26,17 @@
+                     routing_state, automatic_metadata_state)
+ 
+ ROOT = Path(__file__).resolve().parent
+-VERSION = "2.6.0"
++VERSION = "2.7.0"
+ EFFORT_ORDER = ["none", "low", "medium", "high", "xhigh", "max"]
+ 
+ 
+ def routing_mode(args, config: dict) -> str:
+-    """Select routing behavior. Auto is the default, never implicit offline.
+-
+-    --online is a backwards-compatible opt-in to remote routing, while
+-    --offline overrides auto and blocks sending task data to OpenRouter.
++    """Only an explicit CLI opt-out selects local routing.
++
++    Old config.default_mode=local cannot silently disable the installed online
++    entrypoint. Both auto and luna REQUIRE a successful Luna decision in the CLI.
+     """
+-    config_mode = config.get("routing", {}).get("default_mode", "auto")
+-    if config_mode not in {"auto", "local", "luna"}:
+-        raise ValueError("routing.default_mode must be auto/local/luna")
+-    selected = getattr(args, "routing", None) or config_mode
++    selected = getattr(args, "routing", None) or "luna"
+     if getattr(args, "online", False):
+         selected = "luna"
+     if getattr(args, "offline", False):
+@@ -48,11 +46,33 @@
+     return selected
+ 
+ 
++def emit_event(event, **details):
++    print(json.dumps({"event": event, "version": VERSION, **details},
++                     ensure_ascii=False, allow_nan=False), file=sys.stderr, flush=True)
++
++
++def attach_receipt(result, args):
++    """Persist an inspectable result for every plan/run, including failures."""
++    result["version"] = VERSION
++    result["entrypoint"] = str(Path(__file__).resolve())
++    result["key_status"] = key_status()  # Boolean + source only, NEVER value.
++    execution = result.get("execution", {})
++    result["worker_started"] = execution.get("worker_started", False) is True
++    result["worker_completed"] = execution.get("status") in {"turn_completed", "response_received"}
++    receipt = getattr(args, "_receipt_path", None)
++    if receipt:
++        result["receipt_path"] = str(receipt)
++        save_json(receipt, result)
++    if getattr(args, "output", None):
++        save_json(args.output, result)
++    return result
++
++
+ def auto_decision_enabled(mode: str, task: dict, config: dict) -> bool:
+     """Auto calls Luna only with an API key and an eligible data policy."""
+     if mode == "local" or task["data_policy"] == "no_external":
+         return False
+-    if not os.environ.get("OPENROUTER_API_KEY", "").strip():
++    if not resolve_key()[0]:
+         return False
+     return config.get("decision", {}).get("enabled", False) is True
+ 
+@@ -152,8 +172,15 @@
+     return fallback_route(task, known or candidates)
+ 
+ 
+-def make_plan(task, config, runtime, text_catalog, decisions_catalog, online=False, ledger=None, job=None, auto_metadata=False):
++def make_plan(task, config, runtime, text_catalog, decisions_catalog, online=False, ledger=None, job=None, auto_metadata=False, require_luna=False, fresh_decision=False):
+     candidates = build_candidates(task, config, runtime, text_catalog)
++    if not candidates and require_luna:
++        return {"version": VERSION, "status": "blocked", "stage": "capabilities",
++                "reason": "no_verified_worker_candidates", "decision_source": "not_called",
++                "decision_model_called": False, "decision_call_attempted": False,
++                "decision_response_received": False, "worker_started": False,
++                "diagnostic": runtime.get("discovery_error") or "no_eligible_models",
++                "next_action": "Run doctor; repair Codex discovery. Use probe to test Luna independently."}
+     if not candidates:
+         fallback = _codex_default_plan(task, config, runtime, [])
+         if fallback is not None:
+@@ -173,9 +200,11 @@
+     }
+     attempted = False
+     response_received = False
+-    if task.get("requested_model"):
++    raw = None
++    blocking_reason = None
++    if task.get("requested_model") and not require_luna:
+         source = "explicit_model"
+-    elif len(candidates) == 1:
++    elif len(candidates) == 1 and not require_luna:
+         source = "single_eligible_candidate"
+     elif online and decision_policy.get("enabled") is True:
+         try:
+@@ -184,15 +213,18 @@
+                 state = automatic_metadata_state(task)
+             if state is None:
+                 raise ValueError("external_routing_not_allowed")
+-            decision_model = orb.get_decision_model(decisions_catalog, decision_policy)
+-            if decision_model is None:
++            # A public catalog outage must not silently bypass the paid decider.
++            # In strict mode the exact model is submitted directly; the API is
++            # authoritative for availability. No guessed account capabilities.
++            decision_model = None if require_luna else orb.get_decision_model(decisions_catalog, decision_policy)
++            if decision_model is None and not require_luna:
+                 raise ValueError("decision_model_unavailable")
+             efforts = [e for e in EFFORT_ORDER if any(e in c["efforts"] for c in candidates)]
+             body = build_request(state, candidates, efforts)
+             fingerprint = {"request": body, "policy": config, "capabilities": candidates,
+                            "decision_model": decision_model, "version": VERSION}
+             key = hashlib.sha256(json.dumps(fingerprint, sort_keys=True, ensure_ascii=False, allow_nan=False).encode()).hexdigest()
+-            raw = ledger.get(key) if ledger else None
++            raw = ledger.get(key) if ledger and not fresh_decision else None
+             cache_hit = raw is not None
+             if raw is None:
+                 if not ledger or not job:
+@@ -202,13 +234,17 @@
+                 ledger.reserve(job, "decision")
+                 decision_cost["new_request"] = True
+                 attempted = True
++                emit_event("luna_request_started", model=DECISION_MODEL,
++                           endpoint="/api/alpha/decisions")
+                 raw = orb.decide(body, decision_model, decision_policy)
+                 response_received = True
++                emit_event("luna_response_received", model=raw.get("model"),
++                           response_id=raw.get("id"))
+                 decision_cost["reported_cost_usd"] = orb.reported_cost(raw)
+             else:
+                 decision_cost["cache_hit"] = True
+             parsed = parse_response(raw, [c["id"] for c in candidates], efforts)
+-            if parsed["model"] != decision_model["id"]:
++            if parsed["model"] != decision_policy["model"]:
+                 raise ValueError("decision_model_mismatch")
+             if assess_decision(parsed, task["risk"] == "low") == "accepted":
+                 choice = enforce_selection(task, candidates, parsed["selected_id"], parsed["effort"])
+@@ -219,22 +255,44 @@
+                 choice = conservative_fallback(task, candidates)
+                 source = "local_fallback"
+                 notes.append("luna_probability_below_uncalibrated_threshold")
++                if require_luna:
++                    blocking_reason = "luna_decision_below_threshold"
+         except BudgetExceeded as exc:
+             # Request-count controls are not monetary limits. Never retry a
+             # rate-limited paid decision automatically.
+             choice = conservative_fallback(task, candidates)
+             source = "local_fallback"
+             notes.append({"request_limit": str(exc)})
++            if require_luna:
++                blocking_reason = "decision_request_limit_exceeded"
+         except (orb.APIError, ValueError) as exc:
+             choice = conservative_fallback(task, candidates)
+             source = "local_fallback"
+             notes.append(type(exc).__name__)
+             if isinstance(exc, orb.APIError):
+                 notes.append({"http_status": exc.status, "retry_after": exc.retry_after})
++            if require_luna:
++                blocking_reason = "luna_api_error" if isinstance(exc, orb.APIError) else "invalid_luna_decision"
++                # Validation messages are our own literals, never transport bodies.
++                if isinstance(exc, ValueError):
++                    notes.append({"validation_error": str(exc)})
+     elif online:
+         notes.append("decision_model_disabled")
+     else:
+         notes.append("offline_no_model_called")
++    if require_luna and source not in {"luna_decisions", "luna_decisions_cache"}:
++        emit_event("luna_required_blocked", reason=blocking_reason or "live_luna_required")
++        return {"version": VERSION, "status": "blocked", "stage": "decision",
++                "reason": blocking_reason or "live_luna_required",
++                "decision_source": "luna_decisions_rejected" if parsed else "luna_decisions_error",
++                "selected_model": None, "requested_effort": None,
++                "decision_model": DECISION_MODEL, "decision_metrics": parsed,
++                "decision_call_attempted": attempted,
++                "decision_response_received": response_received,
++                "decision_model_called": bool(response_received and isinstance(raw, dict) and raw.get("model") == DECISION_MODEL),
++                "decision_response_id": raw.get("id") if isinstance(raw, dict) else None,
++                "decision_cost": decision_cost, "notes": notes,
++                "validation_status": "not_executed"}
+     selected = next(c for c in candidates if c["id"] == choice["selected_id"])
+     return {
+         "version": VERSION, "status": "planned", "decision_source": source,
+@@ -247,7 +305,9 @@
+         "decision_metrics": parsed, "decision_cost": decision_cost, "notes": notes,
+         "decision_call_attempted": attempted,
+         "decision_response_received": response_received,
+-        "decision_model_called": response_received,
++        "decision_model_called": bool(response_received and isinstance(raw, dict) and raw.get("model") == DECISION_MODEL),
++        "decision_response_id": raw.get("id") if isinstance(raw, dict) else None,
++        "require_luna": require_luna,
+         "validation_status": "not_executed", "worker": selected,
+     }
+ 
+@@ -294,13 +354,16 @@
+     # Public catalog discovery can be online, but no user task text is sent in GETs.
+     # Do not ask the network if the key is absent; public GETs alone do not
+     # authorize inference and cannot result in an executable free worker.
+-    if not os.environ.get("OPENROUTER_API_KEY", "").strip():
++    if not resolve_key()[0]:
+         notes.append("openrouter_key_absent_using_local_policy")
+         return runtime, text_catalog, decisions_catalog, notes
+     if task["data_policy"] == "no_external":
+         notes.append("no_external_task_using_local_policy")
+         return runtime, text_catalog, decisions_catalog, notes
+-    for modality in ("text", "decisions"):
++    modalities = ("text", "decisions")
++    if getattr(args, "_require_luna", False):
++        modalities = ("text",) if task["data_policy"] == "public" and not task["needs_tools"] else ()
++    for modality in modalities:
+         try:
+             data = orb.catalog(modality)
+             if modality == "text":
+@@ -317,7 +380,13 @@
+         return plan
+     if plan.get("simulation"):
+         return {"status": "blocked", "reason": "simulation_cannot_execute"}
++    if getattr(args, "_require_luna", False) and plan.get("decision_source") not in {
++        "luna_decisions", "luna_decisions_cache", "retry_state"
++    }:
++        return {"status": "blocked", "reason": "live_luna_required", "worker_started": False}
+     worker = plan["worker"]
++    emit_event("worker_dispatch", backend=worker["backend"],
++               requested_model=worker["model_id"], requested_effort=plan.get("requested_effort"))
+     if worker["backend"] == "codex":
+         return codex_backend.run_task(
+             task["objective"], worker["model_id"], plan["requested_effort"],
+@@ -409,6 +478,8 @@
+     state = store.get(args.job_id)
+     if state is not None and state["fingerprint"] != fingerprint:
+         raise ValueError("job-id belongs to another task or project")
++    if state is not None and getattr(args, "_require_luna", False) and not state.get("luna_origin_verified"):
++        raise ValueError("saved_job_has_no_luna_evidence_use_new_job_id_or_explicit_offline")
+     check = read_check(args.verify_argv_file, config.get("escalation", {}).get("verifier_timeout_seconds", 300)) if args.verify_argv_file else None
+     if args.auto_retry and check is None:
+         raise ValueError("--auto-retry requires --verify-argv-file (independent test command)")
+@@ -420,7 +491,9 @@
+     if state is None:
+         plan = make_plan(task, config, runtime, text_catalog, decision_catalog,
+                          online=getattr(args, "_decision_online", False), ledger=ledger, job=job,
+-                         auto_metadata=getattr(args, "_auto_metadata", False))
++                         auto_metadata=getattr(args, "_auto_metadata", False),
++                         require_luna=getattr(args, "_require_luna", False),
++                         fresh_decision=getattr(args, "_require_luna", False))
+         plan.setdefault("notes", []).extend(notes)
+         if plan.get("backend") == "codex_default":
+             return {"plan": {"status": "blocked", "reason": "default_codex_fallback_cannot_auto_escalate",
+@@ -530,13 +603,13 @@
+         p.add_argument("--text-only", action="store_true", help="Inline prompt needs no local tools")
+         p.add_argument("--data-policy", choices=["metadata_only","public","no_external"],
+                        help="Inline prompt data sharing; public permits sending full text to OpenRouter")
+-        p.add_argument("--routing", choices=["auto","luna","local"], help="Override config default: auto uses Luna when a key is present, otherwise local")
++        p.add_argument("--routing", choices=["auto","luna","local"], help="Default luna; auto also requires Luna. local is an explicit offline opt-out")
+         p.add_argument("--offline", action="store_true", help="No task info sent to OpenRouter; local routing only")
+         p.add_argument("--config", default=str(ROOT / "config.json"))
+         p.add_argument("--output", help="Save a JSON report")
+         p.add_argument("--runtime", help="Offline discovered Codex runtime JSON")
+         p.add_argument("--catalog-file", help="Offline free text catalog JSON")
+-        p.add_argument("--online", action="store_true", help="Compatibility alias for --routing luna (not required for Auto Routing)")
++        p.add_argument("--online", action="store_true", help="Explicit alias for default required-online Luna routing")
+         p.add_argument("--demo", action="store_true", help="Use simulated capabilities; cannot execute")
+         p.add_argument("--project", default=".")
+         p.add_argument("--sandbox", choices=["read-only", "workspace-write"], default="workspace-write")
+@@ -586,7 +659,10 @@
+         if args.command == "doctor":
+             config = read_json(ROOT / "config.json")
+             report = {"version": VERSION, "routing_default": config.get("routing", {}).get("default_mode"),
+-                      "openrouter_key_present": bool(os.environ.get("OPENROUTER_API_KEY", "").strip()),
++                      "openrouter_key_present": key_status()["present"],
++                      "openrouter_key_source": key_status()["source"],
++                      "entrypoint": str(Path(__file__).resolve()),
++                      "online_required_by_default": True,
+                       "codex_found": bool(shutil.which("codex")),
+                       "codex_auth_mode": "unknown", "model_list": "not_checked",
+                       "model_count": None, "discovery_error": None,
+@@ -642,12 +718,29 @@
+             raise ValueError("--offline cannot be combined with --online / --routing luna")
+         if args.online and args.routing == "local":
+             raise ValueError("--online cannot be combined with --routing local")
++        args._receipt_path = Path(args.state_dir).resolve() / "receipts" / (uuid.uuid4().hex + ".json")
++        if os.environ.get("LUNA_ROUTER_WORKER") == "1":
++            raise ValueError("recursive_router_invocation_blocked")
+         task = _inline_task(args)
+         config = read_json(args.config)
+         args._routing_mode = routing_mode(args, config)
++        args._require_luna = args._routing_mode != "local" and not args.demo
++        if args._require_luna:
++            if not resolve_key()[0]:
++                raise ValueError("openrouter_key_missing_online_required")
++            if task["data_policy"] == "no_external":
++                raise ValueError("no_external_conflicts_with_online_use_explicit_offline")
++            if config.get("decision", {}).get("enabled") is not True:
++                raise ValueError("luna_disabled_online_required")
++            if config.get("decision", {}).get("model") != DECISION_MODEL:
++                raise ValueError("unexpected_decision_model")
++        if args.command == "run" and not Path(args.project).resolve().is_dir():
++            raise ValueError("project_directory_not_found")
++        emit_event("routing_started", mode=args._routing_mode, required_online=args._require_luna,
++                   entrypoint=str(Path(__file__).resolve()), key_source=key_status()["source"])
+         args._decision_online = auto_decision_enabled(args._routing_mode, task, config)
+         args._auto_metadata = (args._routing_mode != "local"
+-                               and config.get("routing", {}).get("automatic_metadata_decisions", False))
++                               and config.get("routing", {}).get("automatic_metadata_decisions", True))
+         if args.demo:
+             args._decision_online = False
+         runtime, text_catalog, decision_catalog, notes = collect(args, task)
+@@ -657,12 +750,11 @@
+         online = args._decision_online
+         # Ledger is also used for OpenRouter free worker request-count guardrails.
+         # Local-only Codex work needs no database or API key.
+-        use_ledger = args._decision_online or (args._routing_mode != "local" and bool(os.environ.get("OPENROUTER_API_KEY")))
+-        ledger = Ledger(ROOT / ".state/usage.sqlite", config["policy"]) if use_ledger else None
++        use_ledger = args._decision_online or (args._routing_mode != "local" and bool(resolve_key()[0]))
++        ledger = Ledger(Path(args.state_dir) / "usage.sqlite", config["policy"]) if use_ledger else None
+         if args.command == "run" and args.job_id:
+             result = retry_run(args, task, config, runtime, text_catalog, decision_catalog, ledger, job, notes)
+-            if args.output:
+-                save_json(args.output, result)
++            attach_receipt(result, args)
+             print(json.dumps(result, ensure_ascii=False, indent=2, allow_nan=False))
+             status = result.get("retry", {}).get("status")
+             if status == "completed":
+@@ -681,13 +773,17 @@
+             if existing is not None:
+                 if existing["fingerprint"] != task_fingerprint(task, Path(args.project)):
+                     raise ValueError("job-id belongs to another task or project")
++                if args._require_luna and not existing.get("luna_origin_verified"):
++                    raise ValueError("saved_job_has_no_luna_evidence_use_new_job_id_or_explicit_offline")
+                 plan = resume_plan(existing, task, config, runtime, text_catalog)
+             else:
+                 plan = make_plan(task, config, runtime, text_catalog, decision_catalog, online, ledger, job,
+-                                 auto_metadata=args._auto_metadata)
++                                 auto_metadata=args._auto_metadata, require_luna=args._require_luna,
++                                 fresh_decision=args._require_luna)
+         else:
+             plan = make_plan(task, config, runtime, text_catalog, decision_catalog, online, ledger, job,
+-                             auto_metadata=args._auto_metadata)
++                             auto_metadata=args._auto_metadata, require_luna=args._require_luna,
++                                 fresh_decision=args._require_luna)
+         plan.setdefault("notes", []).extend(notes)
+         result = {"plan": plan, "routing_mode": args._routing_mode}
+         if args.command == "run":
+@@ -695,8 +791,7 @@
+             result["acceptance"] = "not_independently_verified"
+             result["model_switch_verified"] = False  # Actual wire model not observed by Codex CLI JSONL
+         plan.pop("worker", None)
+-        if args.output:
+-            save_json(args.output, result)
++        attach_receipt(result, args)
+         print(json.dumps(result, ensure_ascii=False, indent=2, allow_nan=False))
+         if plan["status"] == "blocked":
+             return 2
+@@ -705,7 +800,19 @@
+         return 0
+     except (ValueError, OSError, sqlite3.Error, orb.APIError, BudgetExceeded, codex_backend.CodexBackendError) as exc:
+         # Never emit raw transport response bodies or environment values.
+-        print(json.dumps({"status": "blocked", "error_type": type(exc).__name__, "message": str(exc)}, ensure_ascii=False), file=sys.stderr)
++        failure = {"status": "blocked", "error_type": type(exc).__name__, "message": str(exc),
++                   "decision_source": "not_called", "worker_started": False, "worker_completed": False}
++        if "plan" in locals():
++            failure["plan"] = {k:v for k,v in plan.items() if k != "worker"}
++            failure.pop("decision_source", None)
++        if isinstance(exc, orb.APIError):
++            failure["http_status"] = exc.status
++        if getattr(args, "command", None) in {"plan", "run"}:
++            try:
++                attach_receipt(failure, args)
++            except (OSError, ValueError):
++                failure["receipt_write_failed"] = True
++        print(json.dumps(failure, ensure_ascii=False), file=sys.stderr)
+         return 2
+ 
+ 
+--- v2.6.0/openrouter_backend.py
++++ v2.7.0/openrouter_backend.py
+@@ -9,6 +9,7 @@
+ from __future__ import annotations
+ 
+ import copy
++from credentials import resolve_key
+ import json
+ import math
+ import os
+@@ -146,9 +147,9 @@
+     if method == "GET" and payload is not None:
+         raise ValueError("GET requests must not contain a payload")
+     public_catalog = method == "GET" and urlsplit(path).path == "/api/v1/models"
+-    headers = {"Accept": "application/json", "User-Agent": "adaptive-luna-router/2.2"}
++    headers = {"Accept": "application/json", "User-Agent": "adaptive-luna-router/2.7.0"}
+     if not public_catalog:
+-        token = os.environ.get("OPENROUTER_API_KEY", "").strip()
++        token, _ = resolve_key()
+         if not token:
+             raise APIError("OPENROUTER_API_KEY is required")
+         if any(ord(char) < 33 or ord(char) > 126 for char in token):
+@@ -494,9 +495,16 @@
+     return outgoing
+ 
+ 
+-def decide(body: dict[str, Any], model_record: dict[str, Any], decision_policy: dict[str, Any]) -> dict[str, Any]:
++def decide(body: dict[str, Any], model_record: dict[str, Any] | None, decision_policy: dict[str, Any]) -> dict[str, Any]:
+     """Send one decision POST without local price checking or spending ledger."""
+-    context_length = _decision_model_record(model_record, decision_policy)
++    if model_record is None:
++        # Strict online mode calls the exact documented endpoint directly.
++        # This is a conservative payload envelope, NOT an invented model catalog.
++        if decision_policy.get("model") != DECISION_MODEL or decision_policy.get("enabled") is not True:
++            raise ValueError("Only enabled GPT-6 Luna Decisions is supported")
++        context_length = 65536
++    else:
++        context_length = _decision_model_record(model_record, decision_policy)
+     outgoing = _decision_body(body, decision_policy, context_length)
+     return request_json("POST", "/api/alpha/decisions", outgoing)
+ 
+--- v2.6.0/codex_backend.py
++++ v2.7.0/codex_backend.py
+@@ -15,6 +15,7 @@
+ from collections import deque
+ from datetime import datetime, timezone
+ import json
++import os
+ import math
+ from pathlib import Path
+ import queue
+@@ -441,7 +442,7 @@
+               "actual_model": None, "actual_effort": None,
+               "selection_source": "codex_cli_default_unverified",
+               "status": "failed", "exit_code": None, "thread_id": None,
+-              "worker_message": "", "events": []}
++              "worker_message": "", "events": [], "worker_started": False}
+     if not isinstance(runtime, dict) or runtime.get("simulation") is not False:
+         return {**result, "error": "simulation_or_unverified_runtime_blocked"}
+     if not isinstance(task_text, str) or not task_text.strip() or "\x00" in task_text:
+@@ -462,7 +463,9 @@
+             proc = subprocess.Popen(
+                 command, stdin=subprocess.PIPE, stdout=stdout_file, stderr=stderr_file,
+                 text=True, encoding="utf-8", errors="replace", shell=False,
++                env={**os.environ, "LUNA_ROUTER_WORKER": "1"},
+             )
++            result["worker_started"] = True
+             try:
+                 proc.communicate(input=task_text, timeout=timeout)
+             except subprocess.TimeoutExpired:
+@@ -527,6 +530,7 @@
+         "events": [],
+         "actual_model": None,
+         "actual_effort": None,
++        "worker_started": False,
+     }
+ 
+     def fail(code: str) -> dict:
+@@ -575,7 +579,9 @@
+                 encoding="utf-8",
+                 errors="replace",
+                 shell=False,
++                env={**os.environ, "LUNA_ROUTER_WORKER": "1"},
+             )
++            result["worker_started"] = True
+             try:
+                 proc.communicate(input=task_text, timeout=timeout)
+             except subprocess.TimeoutExpired:
+--- v2.6.0/escalation.py
++++ v2.7.0/escalation.py
+@@ -108,6 +108,10 @@
+                 FOREIGN KEY(job_id) REFERENCES retry_jobs(job_id)
+             )""")
+             db.execute("CREATE INDEX IF NOT EXISTS retry_attempt_job ON retry_attempts(job_id)")
++            db.execute("""CREATE TABLE IF NOT EXISTS retry_luna_origins (
++                job_id TEXT PRIMARY KEY, decision_source TEXT NOT NULL, response_id TEXT,
++                FOREIGN KEY(job_id) REFERENCES retry_jobs(job_id)
++            )""")
+ 
+     def connect(self):
+         class Database:
+@@ -136,6 +140,9 @@
+         result["route"] = json.loads(result.pop("route_json"))
+         result["candidates"] = json.loads(result.pop("candidates_json"))
+         result["job_id"] = job_id
++        origin = db.execute("SELECT decision_source,response_id FROM retry_luna_origins WHERE job_id=?", (job_id,)).fetchone()
++        result["luna_origin_verified"] = origin is not None
++        result["luna_origin_response_id"] = origin["response_id"] if origin else None
+         return result
+ 
+     def get(self, job_id: str) -> dict | None:
+@@ -173,6 +180,11 @@
+                     job_id, fingerprint, json.dumps(route, ensure_ascii=False),
+                     json.dumps(candidate_copy, ensure_ascii=False), "ready", "initial_route", time.time(),
+                 ))
++            if (plan.get("decision_source") in {"luna_decisions", "luna_decisions_cache"}
++                    and plan.get("decision_model") == "openai/gpt-6-luna-decisions"
++                    and isinstance(plan.get("decision_metrics"), dict)):
++                db.execute("INSERT INTO retry_luna_origins VALUES (?,?,?)",
++                           (job_id, plan["decision_source"], plan.get("decision_response_id")))
+             return self._read(db, job_id)
+ 
+     def begin_attempt(self, job_id: str, fingerprint: str) -> tuple[str, dict]:
+--- v2.6.0/config.json
++++ v2.7.0/config.json
+@@ -1,5 +1,5 @@
+ {
+-  "version": "2.6.0",
++  "version": "2.7.0",
+   "verified_date": "2026-10-27",
+   "decision": {
+     "model": "openai/gpt-6-luna-decisions",
+@@ -161,10 +161,12 @@
+     "verifier_timeout_seconds": 300
+   },
+   "routing": {
+-    "default_mode": "auto",
++    "default_mode": "luna",
+     "automatic_metadata_decisions": true,
+     "allow_codex_cli_default_fallback": true,
+     "use_openrouter_only_when_key_present": true,
+-    "note": "Auto may send fixed task classification metadata (kind/complexity/risk/tools/tokens) to OpenRouter when OPENROUTER_API_KEY is present; task text and filenames are not sent. Use --routing local or data_policy=no_external to disable."
++    "note": "auto/luna require successful online Luna; local only via explicit --offline/--routing local. Missing key is an error. Fixed metadata only by default.",
++    "require_luna_for_auto": true,
++    "new_job_fresh_decision": true
+   }
+ }
+--- v2.6.0/credentials.py
++++ v2.7.0/credentials.py
+@@ -0,0 +1,34 @@
++"""Read the OpenRouter key without persisting it or displaying its value.
++Windows User/Machine environment registry fallback handles an already-open host.
++"""
++from __future__ import annotations
++import os
++
++NAME = "OPENROUTER_API_KEY"
++
++def resolve_key():
++    value = os.environ.get(NAME, "").strip()
++    if value:
++        return value, "process"
++    if os.name == "nt":
++        try:
++            import winreg
++        except ImportError:
++            return "", "missing"
++        for scope, hive, path in (
++            ("user_environment", winreg.HKEY_CURRENT_USER, r"Environment"),
++            ("system_environment", winreg.HKEY_LOCAL_MACHINE,
++             r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment"),
++        ):
++            try:
++                with winreg.OpenKey(hive, path, 0, winreg.KEY_READ) as handle:
++                    found, kind = winreg.QueryValueEx(handle, NAME)
++                if kind in (winreg.REG_SZ, winreg.REG_EXPAND_SZ) and isinstance(found, str) and found.strip():
++                    return found.strip(), scope
++            except OSError:
++                continue
++    return "", "missing"
++
++def key_status():
++    key, source = resolve_key()
++    return {"present": bool(key), "source": source}
+--- v2.6.0/luna.py
++++ v2.7.0/luna.py
+@@ -0,0 +1,63 @@
++#!/usr/bin/env python3
++"""Installed executable entrypoint. No subcommand means RUN, not PLAN."""
++from __future__ import annotations
++import argparse
++import json
++import sys
++from pathlib import Path
++import router
++from credentials import resolve_key, key_status
++from decision import _choice_answer
++
++COMMANDS = {'run','plan','doctor','discover','catalog','demo','quota','spend-status',
++            'budget','fee-policy','retry-status','feedback'}
++
++def probe(output=None):
++    """Make exactly one real Decisions POST, independently of Codex discovery."""
++    result = {'version':router.VERSION, 'operation':'probe', 'status':'blocked',
++              'decision_model_called':False, 'decision_call_attempted':False,
++              'worker_started':False, 'key_status':key_status()}
++    try:
++        if not resolve_key()[0]:
++            raise ValueError('openrouter_key_missing_online_required')
++        body = {'model':router.DECISION_MODEL,
++                'state':{'purpose':'User-requested routing connection test', 'sample':'ready'},
++                'questions':{'check':{'type':'choice', 'instructions':'Select the exact sample value.',
++                                      'criteria':{'ready':'The sample is ready','other':'Any other sample'}}}}
++        result['decision_call_attempted'] = True
++        router.emit_event('luna_request_started', operation='probe', model=router.DECISION_MODEL)
++        raw = router.orb.decide(body, None, {'model':router.DECISION_MODEL,'enabled':True})
++        result['response_id'] = raw.get('id')
++        result['response_model'] = raw.get('model')
++        if raw.get('model') != router.DECISION_MODEL:
++            raise ValueError('decision_model_mismatch')
++        _choice_answer(raw.get('answers',{}).get('check'), ['ready','other'], 'check')
++        result.update(status='response_received', decision_model_called=True,
++                      decision_source='luna_decisions', answers=raw['answers'],
++                      reported_cost_usd=router.orb.reported_cost(raw))
++    except (router.orb.APIError, ValueError) as exc:
++        result['error_type'] = type(exc).__name__
++        result['reason'] = str(exc)
++        if isinstance(exc,router.orb.APIError):
++            result['http_status'] = exc.status
++            result['retry_after'] = exc.retry_after
++    path = Path(output) if output else router.ROOT/'.state'/'probe-result.json'
++    result['receipt_path'] = str(path.resolve())
++    router.save_json(path, result)
++    print(json.dumps(result,ensure_ascii=False,indent=2))
++    return 0 if result['status']=='response_received' else 2
++
++
++def main(argv=None):
++    args = list(sys.argv[1:] if argv is None else argv)
++    if args and args[0]=='probe':
++        parser=argparse.ArgumentParser(description='One live Luna API request. No Codex worker. Uses OpenRouter key spend settings.')
++        parser.add_argument('--output')
++        parsed=parser.parse_args(args[1:])
++        return probe(parsed.output)
++    if not args or args[0] not in COMMANDS:
++        args.insert(0,'run')
++    return router.main(args)
++
++if __name__=='__main__':
++    raise SystemExit(main())
+--- v2.6.0/luna_mcp.py
++++ v2.7.0/luna_mcp.py
+@@ -0,0 +1,122 @@
++#!/usr/bin/env python3
++"""Small synchronous stdio MCP adapter. stdout is JSON-RPC only.
++
++No omitted parameter becomes offline. luna_run executes; luna_plan only plans.
++Requests remain synchronous; there is no background task or hidden restart.
++"""
++from __future__ import annotations
++import contextlib
++import io
++import json
++import os
++from pathlib import Path
++import sys
++import tempfile
++import luna
++import router
++
++TASK_PROPERTIES={
++    'task':{'type':'object','description':'Task object, including objective. Only fixed classification metadata is sent to Luna by default.'},
++    'project':{'type':'string','description':'Absolute local project directory.'},
++    'live':{'type':'boolean','default':True,'description':'Omitted/true requires online Luna. false is an explicit local opt-out, never Luna evidence.'},
++    'sandbox':{'type':'string','enum':['read-only','workspace-write'],'default':'workspace-write'},
++}
++TOOLS=[
++    {'name':'luna_run','description':'Default live=true. Call real Luna Decisions, then actually launch the selected Codex worker. Never silently falls back to local.',
++     'inputSchema':{'type':'object','properties':TASK_PROPERTIES,'required':['task','project'],'additionalProperties':False}},
++    {'name':'luna_plan','description':'Default live=true. Call real Luna Decisions and return a plan only. This does NOT run a worker; do not use as task completion.',
++     'inputSchema':{'type':'object','properties':TASK_PROPERTIES,'required':['task','project'],'additionalProperties':False}},
++    {'name':'luna_status','description':'Local diagnostics only; no inference and no credential values.',
++     'inputSchema':{'type':'object','properties':{},'additionalProperties':False}},
++]
++
++def invoke(name, arguments):
++    if not isinstance(arguments,dict):
++        raise ValueError('arguments must be an object')
++    if os.environ.get('LUNA_ROUTER_WORKER')=='1':
++        raise ValueError('recursive_router_invocation_blocked')
++    if name=='luna_status':
++        if arguments:
++            raise ValueError('luna_status does not accept inference flags; use luna probe explicitly')
++        out=io.StringIO()
++        with contextlib.redirect_stdout(out):
++            code=router.main(['doctor'])
++        return code,json.loads(out.getvalue())
++    if name not in {'luna_run','luna_plan'}:
++        raise ValueError('unknown tool')
++    if set(arguments)-set(TASK_PROPERTIES):
++        raise ValueError('unsupported argument')
++    live=arguments.get('live',True)
++    if type(live) is not bool:
++        raise ValueError('live must be a boolean')
++    if not isinstance(arguments.get('task'),dict):
++        raise ValueError('task must be an object')
++    project=arguments.get('project')
++    if not isinstance(project,str) or not Path(project).is_absolute():
++        raise ValueError('project must be an absolute path')
++    sandbox=arguments.get('sandbox','workspace-write')
++    if sandbox not in {'read-only','workspace-write'}:
++        raise ValueError('invalid sandbox')
++    with tempfile.TemporaryDirectory(prefix='luna-mcp-') as folder:
++        task=Path(folder)/'task.json'
++        report=Path(folder)/'result.json'
++        router.save_json(task,arguments['task'])
++        argv=['run' if name=='luna_run' else 'plan','--task',str(task),
++              '--project',project,'--sandbox',sandbox,'--output',str(report)]
++        if not live:
++            argv.append('--offline')
++        out=io.StringIO()
++        with contextlib.redirect_stdout(out):
++            code=router.main(argv)
++        result=router.read_json(report) if report.exists() else {'status':'blocked','reason':'missing_report'}
++    return code,result
++
++
++def dispatch(message):
++    if not isinstance(message,dict) or message.get('jsonrpc')!='2.0':
++        return {'jsonrpc':'2.0','id':None,'error':{'code':-32600,'message':'Invalid JSON-RPC request'}}
++    if 'id' not in message:  # initialize notifications, cancellation notifications
++        return None
++    ident=message['id']
++    method=message.get('method')
++    params=message.get('params',{})
++    try:
++        if not isinstance(params,dict):
++            raise ValueError('params must be an object')
++        if method=='initialize':
++            version=params.get('protocolVersion')
++            supported={'2024-11-05','2025-03-26','2025-06-18','2025-11-25'}
++            result={'protocolVersion':version if version in supported else '2025-11-25',
++                    'capabilities':{'tools':{}},
++                    'serverInfo':{'name':'luna-router','version':router.VERSION},
++                    'instructions':'Use luna_run for actual work. live defaults to true. Local is explicit only.'}
++        elif method=='ping':
++            result={}
++        elif method=='tools/list':
++            result={'tools':TOOLS}
++        elif method=='tools/call':
++            try:
++                code,value=invoke(params.get('name'),params.get('arguments',{}))
++            except (ValueError,OSError) as exc:
++                code,value=2,{'status':'blocked','reason':str(exc)}
++            result={'content':[{'type':'text','text':json.dumps(value,ensure_ascii=False)}],
++                    'isError':code!=0}
++        else:
++            return {'jsonrpc':'2.0','id':ident,'error':{'code':-32601,'message':'Method not found'}}
++        return {'jsonrpc':'2.0','id':ident,'result':result}
++    except ValueError as exc:
++        return {'jsonrpc':'2.0','id':ident,'error':{'code':-32602,'message':str(exc)}}
++
++
++def main():
++    for line in sys.stdin:
++        try:
++            message=json.loads(line)
++            response=dispatch(message)
++        except (ValueError,UnicodeError):
++            response={'jsonrpc':'2.0','id':None,'error':{'code':-32700,'message':'Parse error'}}
++        if response is not None:
++            print(json.dumps(response,ensure_ascii=False),flush=True)
++
++if __name__=='__main__':
++    main()
+--- v2.6.0/install_router.py
++++ v2.7.0/install_router.py
+@@ -0,0 +1,172 @@
++#!/usr/bin/env python3
++"""Install the engine + bound skill + launchers; optionally register local MCP.
++Never reads/writes credential files or changes the global model/provider.
++"""
++from __future__ import annotations
++import argparse
++from datetime import datetime, timezone
++import hashlib
++import json
++import os
++from pathlib import Path
++import re
++import shutil
++import sys
++import tempfile
++import uuid
++
++ROOT=Path(__file__).resolve().parent
++BEGIN='# BEGIN LUNA ROUTER V2.7 MANAGED MCP'
++END='# END LUNA ROUTER V2.7 MANAGED MCP'
++SERVER='luna_router_v270'
++
++
++def verify_source(source):
++    manifest=source/'MANIFEST.sha256'
++    count=0
++    seen=set()
++    for line in manifest.read_text(encoding='utf-8').splitlines():
++        if not line.strip():
++            continue
++        digest,sep,name=line.partition('  ')
++        relative=Path(name)
++        if not sep or not re.fullmatch('[0-9a-f]{64}',digest) or relative.is_absolute() or '..' in relative.parts or name in seen:
++            raise ValueError('invalid_release_manifest')
++        target=source/relative
++        if not target.is_file() or target.is_symlink() or hashlib.sha256(target.read_bytes()).hexdigest()!=digest:
++            raise ValueError('release_manifest_mismatch: '+name)
++        seen.add(name)
++        count+=1
++    required={'router.py','luna.py','credentials.py','luna_mcp.py','config.json',
++              'skills/gpt-luna-decision/SKILL.md'}
++    if not required <= seen:
++        raise ValueError('release_manifest_missing_runtime')
++    return count
++
++
++def mcp_config(current, destination):
++    block=(f'{BEGIN}\n[mcp_servers.{SERVER}]\n'
++           f'command = {json.dumps(sys.executable)}\n'
++           f'args = [{json.dumps(str(destination/"luna_mcp.py"))}]\n'
++           'env_vars = ["OPENROUTER_API_KEY"]\n'
++           'startup_timeout_sec = 15\ntool_timeout_sec = 1900\n'
++           f'{END}\n')
++    pattern=re.compile(r'(?m)^'+re.escape(BEGIN)+r'\r?\n.*?^'+re.escape(END)+r'\r?\n?',re.S)
++    if BEGIN in current or END in current:
++        if current.count(BEGIN)!=1 or current.count(END)!=1 or not pattern.search(current):
++            raise ValueError('invalid_managed_mcp_block')
++        updated=pattern.sub(lambda _:block,current)
++    elif re.search(r'(?m)^\s*\[mcp_servers\.(?:'+SERVER+r'|"'+SERVER+r'")\]',current):
++        raise ValueError('unmanaged_mcp_table_conflict')
++    else:
++        updated=current.rstrip()+'\n\n'+block
++    # Python 3.11+ is required for installation, so validate before any writes.
++    import tomllib
++    parsed=tomllib.loads(updated)
++    if parsed['mcp_servers'][SERVER]['tool_timeout_sec']!=1900:
++        raise ValueError('invalid_mcp_registration')
++    return updated
++
++
++def install(source, codex_home, register_mcp=False):
++    source=Path(source).resolve()
++    home=Path(codex_home).resolve()
++    destination=home/'luna-router'
++    if source==destination or source in destination.parents or destination in source.parents:
++        raise ValueError('extract_release_outside_install_destination')
++    verified=verify_source(source)
++    config=home/'config.toml'
++    original=config.read_text(encoding='utf-8-sig') if config.exists() else ''
++    new_config=mcp_config(original,destination) if register_mcp else None
++    stamp=datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')+'-'+uuid.uuid4().hex[:6]
++    backup=home/'luna-router-backups'/stamp
++    home.mkdir(parents=True,exist_ok=True)
++    staging=Path(tempfile.mkdtemp(prefix='.luna-stage-',dir=home))
++    skill=home/'skills'/'gpt-luna-decision'
++    binpath=home/'bin'
++    had_destination=destination.exists()
++    # Refuse to adopt an unrelated directory.
++    if had_destination and not (destination/'router.py').is_file():
++        shutil.rmtree(staging)
++        raise ValueError('destination_is_not_an_existing_router_install')
++    try:
++        shutil.copytree(source,staging,dirs_exist_ok=True,
++                        ignore=shutil.ignore_patterns('__pycache__','.state','*.pyc'))
++        verify_source(staging)
++        backup.mkdir(parents=True)
++        if skill.exists():
++            shutil.copytree(skill,backup/'skill')
++        if binpath.exists():
++            for name in ('luna.ps1','luna.cmd'):
++                if (binpath/name).exists():
++                    (backup/'bin').mkdir(exist_ok=True)
++                    shutil.copy2(binpath/name,backup/'bin'/name)
++        if config.exists() and register_mcp:
++            shutil.copy2(config,backup/'config.toml')
++        if had_destination:
++            destination.rename(backup/'runtime')
++        staging.rename(destination)
++        if had_destination and (backup/'runtime'/'.state').exists():
++            shutil.copytree(backup/'runtime'/'.state',destination/'.state')
++        skill.mkdir(parents=True,exist_ok=True)
++        instructions=(destination/'skills/gpt-luna-decision/SKILL.md').read_text(encoding='utf-8')
++        instructions=instructions.replace('{{ROUTER_PATH}}',str(destination/'luna.py'))
++        instructions=instructions.replace('{{PYTHON_PATH}}',sys.executable)
++        (skill/'SKILL.md').write_text(instructions,encoding='utf-8')
++        binpath.mkdir(parents=True,exist_ok=True)
++        ps='''param([Parameter(ValueFromRemainingArguments=$true)][string[]]$RouterArguments)
++$ErrorActionPreference='Stop'
++$Engine=Join-Path $PSScriptRoot '..\\luna-router\\luna.py'
++if (Get-Command py -ErrorAction SilentlyContinue) { & py -3 $Engine @RouterArguments }
++else { & python $Engine @RouterArguments }
++exit $LASTEXITCODE
++'''
++        (binpath/'luna.ps1').write_text(ps,encoding='utf-8-sig')
++        (binpath/'luna.cmd').write_text('@echo off\nwhere py >nul 2>&1\nif errorlevel 1 (\n  python "%~dp0..\\luna-router\\luna.py" %*\n) else (\n  py -3 "%~dp0..\\luna-router\\luna.py" %*\n)\nexit /b %errorlevel%\n',encoding='utf-8')
++        if register_mcp:
++            temp_config=config.with_name('.luna-config-'+uuid.uuid4().hex+'.tmp')
++            temp_config.write_text(new_config,encoding='utf-8')
++            temp_config.replace(config)
++        result={'status':'installed','version':'2.7.0','runtime':str(destination),
++                'launcher':str(binpath/'luna.ps1'),'skill':str(skill/'SKILL.md'),
++                'backup':str(backup),'manifest_verified_files':verified,
++                'mcp_registered':register_mcp,'mcp_server':SERVER if register_mcp else None,
++                'inference_performed':False,'global_model_changed':False,
++                'restart_codex_required':True}
++        (destination/'.state').mkdir(exist_ok=True)
++        (destination/'.state'/'installation.json').write_text(json.dumps(result,ensure_ascii=False,indent=2),encoding='utf-8')
++        return result
++    except Exception:
++        # Restore only files owned/touched by this installer; keep backup intact.
++        if (backup/'runtime').exists():
++            if destination.exists():
++                shutil.rmtree(destination)
++            shutil.copytree(backup/'runtime',destination)
++        elif not had_destination and destination.exists():
++            shutil.rmtree(destination)
++        if (backup/'skill').exists():
++            if skill.exists():
++                shutil.rmtree(skill)
++            shutil.copytree(backup/'skill',skill)
++        if register_mcp and (backup/'config.toml').exists():
++            shutil.copy2(backup/'config.toml',config)
++        raise
++    finally:
++        if staging.exists():
++            shutil.rmtree(staging)
++
++
++def main():
++    parser=argparse.ArgumentParser(description=__doc__)
++    parser.add_argument('--codex-home',type=Path,default=Path(os.environ.get('CODEX_HOME') or Path.home()/'.codex'))
++    parser.add_argument('--register-mcp',action='store_true',help='Append/update ONLY our managed MCP table; no model/provider change')
++    args=parser.parse_args()
++    try:
++        print(json.dumps(install(ROOT,args.codex_home,args.register_mcp),ensure_ascii=False,indent=2))
++        return 0
++    except (OSError,ValueError,ImportError) as exc:
++        print(json.dumps({'status':'install_failed','reason':str(exc)},ensure_ascii=False),file=sys.stderr)
++        return 2
++
++if __name__=='__main__':
++    raise SystemExit(main())
+--- v2.6.0/install-luna-router.ps1
++++ v2.7.0/install-luna-router.ps1
+@@ -0,0 +1,8 @@
++[CmdletBinding()]
++param([string]$CodexHome = $(if ($env:CODEX_HOME) { $env:CODEX_HOME } else { Join-Path $HOME '.codex' }), [switch]$RegisterMcp)
++$ErrorActionPreference = 'Stop'
++$InstallerArguments = @((Join-Path $PSScriptRoot 'install_router.py'), '--codex-home', $CodexHome)
++if ($RegisterMcp) { $InstallerArguments += '--register-mcp' }
++if (Get-Command py -ErrorAction SilentlyContinue) { & py -3 @InstallerArguments }
++else { & python @InstallerArguments }
++exit $LASTEXITCODE
+--- v2.6.0/install-codex-skill.ps1
++++ v2.7.0/install-codex-skill.ps1
+@@ -1,16 +1,6 @@
+-# Optional installer: copies only the SKILL.md instructions into Codex skills.
+-# It DOES NOT start inference, install Python, copy credentials, change global
+-# Codex model/effort settings, or overwrite a skill unless -Force is supplied.
+-param([switch]$Force)
+-$ErrorActionPreference = 'Stop'
+-$SourceSkill = Join-Path $PSScriptRoot 'skills\gpt-luna-decision\SKILL.md'
+-$Destination = Join-Path (Join-Path $HOME '.codex\skills') 'gpt-luna-decision'
+-$DestinationFile = Join-Path $Destination 'SKILL.md'
+-if (!(Test-Path -LiteralPath $SourceSkill -PathType Leaf)) { throw 'Bundled SKILL.md not found' }
+-if ((Test-Path -LiteralPath $DestinationFile) -and -not $Force) {
+-    throw 'Codex skill already exists. Review differences and rerun with -Force to overwrite.'
+-}
+-New-Item -ItemType Directory -Force -Path $Destination | Out-Null
+-Copy-Item -LiteralPath $SourceSkill -Destination $DestinationFile -Force
+-Write-Host "Skill copied: $DestinationFile"
+-Write-Host 'This is guidance only. Keep the full router package extracted and invoke router.py explicitly.'
++# Compatibility entrypoint: now installs the full bound engine, not just text.
++[CmdletBinding()]
++param([switch]$Force, [switch]$RegisterMcp)
++$ErrorActionPreference='Stop'
++& (Join-Path $PSScriptRoot 'install-luna-router.ps1') -RegisterMcp:$RegisterMcp
++exit $LASTEXITCODE
+--- v2.6.0/skills/gpt-luna-decision/SKILL.md
++++ v2.7.0/skills/gpt-luna-decision/SKILL.md
+@@ -1,20 +1,54 @@
+ ---
+ name: gpt-luna-decision
+-description: Route Codex work automatically with GPT-6 Luna Decisions when OPENROUTER_API_KEY is available, otherwise use a local policy. Execute through router.py; verify results and escalate only on independent failures.
++description: Execute tasks through required-online GPT-6 Luna Decisions, then a real Codex worker. Default live=true. Never silently fall back to offline or stop at a plan.
+ ---
++# GPT Luna Decisions — Required Online v2.7.0
+ 
+-# GPT-6 Luna Decisions / Auto Routing v2.6.0
++## Execute, do not simulate
++For a concrete work request, invoke **luna_router_v270 / luna_run**, not luna_plan.
++Omitting `live` means `true` in both schema AND implementation. Never insert
++`live:false`, `--offline`, `--routing local`, `--demo`, or a simulation unless
++the user explicitly requests local routing / a demo. Missing credentials, a
++catalog problem, or a failed POST is not permission to select offline.
+ 
+-> 這是供代理使用的操作規格，不是可直接改變 ChatGPT 對話模型的權限或外掛。**只有從路由器的 `run` 入口啟動的任務才真正受它控制。**
++If MCP is not connected, execute the installed CLI with its absolute path:
+ 
+-1. **預設 Auto Routing。** `config.routing.default_mode=auto`。對具體任務以 `python router.py run --task <task.json> --project <folder>` 執行，或使用 `--prompt-file`、`--stdin`、`--prompt`。`plan` 只產生計畫，不執行。舊版 `--online` 不再是必要旗標。可用 `luna-auto.ps1` 啟動單次工作。
+-2. **有 Key 才嘗試 Luna。** 從行程環境讀取 `OPENROUTER_API_KEY`，不讀檔案憑證；Key 存在且任務允許外送時，程式可以自動向 `openai/gpt-6-luna-decisions` 發送純分類 metadata 以選候選與 effort。不要傳專案原文、檔案內容、私鑰、路徑或未經核准的自訂摘要。Key 的 OpenRouter 花費由帳號上限／Guardrails 管理；不重新加本地美元閘門。
+-3. **禁止外送的情況。** 使用 `--offline`／`--routing local` 或 task 的 `data_policy=no_external` 時，不能呼叫 Luna 或 OpenRouter 免費 worker。請注意 Codex CLI 仍是 OpenAI 的雲端服務，不是本機離線模型。
+-4. **能力與實際執行分開。** 正常從 `codex app-server model/list` 讀取原生可用模型及 `supportedReasoningEfforts`，並透過 `codex exec` 啟動。已於 90 秒內成功讀取的本次能力可重用，減少同一指令重查造成的故障。`model/list` 不是 entitlement；`requested_model`／`requested_effort` 不是實際 wire model 證據。
+-5. **診斷與受限備援。** `python router.py doctor` 不執行模型推論。`model/list` 失敗時保留安全診斷碼；若 ChatGPT 登入可獨立確認、沒有指定模型且任務非最高風險，可用 `codex exec` 預設模型**實際執行**，但 `selected_model=null`、`requested_effort=null`、`decision_source=codex_cli_default_fallback`，不得假稱用了 Astra。指定模型或最高風險則阻擋，不能暗中換模型。
+-6. **免費模型。** 對公開、可外送、低風險、無工具的文字任務，可從即時零價目錄選擇 OpenRouter Free worker；每次送出前再驗證模型免費資格。不將免費文字回應當成已讀寫專案。新增／移除單一免費 Agent 詳見 `skills/openrouter-free-agents/SKILL.md`。
+-7. **兩次失敗升級。** `run --job-id ... --verify-argv-file ... --auto-retry --max-attempts ...` 才啟用獨立驗收後的自動重試。兩次解題失敗再逐級提高同一模型 native effort；最高 effort 仍失敗才升模型。沒有驗收資料、逾時、配額、登入或工具問題，不能當成解題失敗。恢復同一 job-id 不應重新呼叫 Luna。
+-8. **報告須如實。** `local_policy`／`local_fallback` = 非 Luna live 成功；`luna_decisions_cache` = 使用既有回應而非本次新呼叫；`luna_decisions` = 新決策被接受；`codex_cli_default_fallback` = 以未知實際模型的 Codex 預設路徑執行。將規劃、worker 啟動、模型確認、驗收四個狀態分開。
+-9. **執行中切換仍是限制。** v2.4 `runtime_controller.py` 是可測試的狀態機，但尚未接入多回合 Codex 即時模型與 effort 切換；不能宣稱完成影片中的 in-flight 切換，也不能自動控制本 ChatGPT 對話模型。
++```powershell
++& '{{PYTHON_PATH}}' '{{ROUTER_PATH}}' run --prompt-file '<UTF-8 task file>' --project '<absolute project path>'
++```
+ 
+-更多參數、風險及驗收：`README-AUTO-ROUTING.md`、`VALIDATION-V2.6.md`。
++The installer replaces both placeholders. Do not use an older copy in another
++folder. No subcommand on `luna.py` defaults to **run**, never plan.
++
++## Data and fees
++The user requested online routing; use `data_policy:"metadata_only"` by default.
++Only fixed task classification metadata is sent to Luna (not project contents,
++paths, credentials, task text or unapproved summaries). Codex receives the actual
++work prompt. `no_external` must be respected; report a conflict rather than
++ignoring it. Only read `OPENROUTER_API_KEY` from the process or Windows User/System
++environment. Do not inspect credential files or print the key. OpenRouter handles
++spend limits; do not add local USD checks. Free workers retain zero-price checks.
++
++## Verify each stage
++The engine requires actual Luna evidence before worker dispatch, even when there
++is one eligible candidate or a user-pinned worker (Luna still chooses effort).
++`luna_status` / `doctor` are not inference. `luna_plan` / `plan` do not run work.
++A cache is not a new call; new strict jobs make a fresh POST. Existing genuine
++Luna retry jobs preserve provenance and do not repeat the decision each attempt.
++Report `decision_source`, `decision_model_called`, `decision_response_id`,
++`worker_started`, `worker_completed`, acceptance, and the installed entrypoint.
++No response ID means "not supplied", never invent one.
++If Luna fails or is rejected, surface status/reason/HTTP code; do not claim success.
++
++Use `luna.py probe` for a single live connection test independent of Codex discovery.
++The first actual task should be read-only with a known expected answer. Do not
++claim Windows/live acceptance from fixture tests.
++
++## Existing behavior preserved
++Two independently verified failures at the same model/effort advance one native
++effort level, reset the count, and at the native ceiling advance a model tier.
++Transport/auth/quota errors are not problem-solving failures. Use `--job-id`,
++`--verify-argv-file`, and `--auto-retry` only with a real acceptance command.
++`runtime_controller.py` is still an unconnected in-flight switching prototype.
++This controls launched workers; it does not change the current ChatGPT UI model.
++If `LUNA_ROUTER_WORKER=1`, execute assigned work; do not recursively call the router.

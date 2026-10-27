@@ -1,0 +1,29 @@
+{
+  "version": "2.7.0",
+  "date": "2026-10-27",
+  "platform": "Linux-6.18.55-x86_64-with-glibc2.41",
+  "python": "3.13.5 (main, Jul 15 2026, 20:25:40) [GCC 14.2.0]",
+  "tests": {
+    "full_suite": {
+      "run": 263,
+      "failures": 0,
+      "errors": 0,
+      "status": "PASS"
+    },
+    "new_regressions_retested": {
+      "run": 28,
+      "failures": 0,
+      "errors": 0,
+      "status": "PASS",
+      "subset_of_full_suite": true
+    }
+  },
+  "http_integration": "PASS: real loopback HTTP POST to synthetic Decisions fixture, dummy credentials only",
+  "worker_integration": "PASS: actual subprocess dispatch to fake local Codex CLI, not OpenAI inference",
+  "install": "PASS: temporary local directories, absolute-path skill, engine dependencies, managed MCP config; NOT 5900X",
+  "live_luna": "NOT_RUN: no OPENROUTER_API_KEY in build environment",
+  "live_codex": "NOT_RUN: no Codex CLI in build environment",
+  "windows_native": "NOT_RUN: Linux build environment; Windows registry fallback covered by mocks",
+  "in_flight_model_switching": "NOT_IMPLEMENTED: v2.4 prototype remains separate",
+  "original_baseline": "235 tests, 1 nondeterministic bridge/native TOML selection failure; fixed test selection explicitly"
+}

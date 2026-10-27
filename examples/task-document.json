@@ -1,0 +1,10 @@
+{
+  "objective": "把目前專案 README 的安裝步驟整理成繁體中文，保留命令與版本要求，修正明顯文字錯誤。",
+  "summary": "已存在專案的安裝文件整理，內容明確，不涉及架構變更。",
+  "summary_approved": true,
+  "kind": "documentation",
+  "complexity": 1,
+  "risk": "low",
+  "needs_tools": true,
+  "data_policy": "metadata_only"
+}

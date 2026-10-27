@@ -1,0 +1,15 @@
+{
+  "version": "2.7.0",
+  "operation": "probe",
+  "status": "blocked",
+  "decision_model_called": false,
+  "decision_call_attempted": false,
+  "worker_started": false,
+  "key_status": {
+    "present": false,
+    "source": "missing"
+  },
+  "error_type": "ValueError",
+  "reason": "openrouter_key_missing_online_required",
+  "receipt_path": "/mnt/data/luna-router-v2.7.0/evidence/probe-v2.7-build-environment.json"
+}

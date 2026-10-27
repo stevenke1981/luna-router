@@ -1,0 +1,201 @@
+[
+  {
+    "example": "task-architecture.json",
+    "version": "2.5.0",
+    "status": "planned",
+    "decision_source": "single_eligible_candidate",
+    "simulation": true,
+    "selected_model": "gpt-6-astra",
+    "backend": "codex",
+    "requested_effort": "xhigh",
+    "effort_note": "native_codex_setting_requested",
+    "reason": "deterministic-family-fallback",
+    "candidate_count": 1,
+    "decision_model": "openai/gpt-6-luna-decisions",
+    "decision_metrics": null,
+    "decision_cost": {
+      "new_request": false,
+      "reported_cost_usd": null,
+      "local_fee_check": false,
+      "cost_owner": "openrouter",
+      "account_limit_verified": false
+    },
+    "notes": [],
+    "decision_call_attempted": false,
+    "decision_response_received": false,
+    "decision_model_called": false,
+    "validation_status": "not_executed"
+  },
+  {
+    "example": "task-complex-debug.json",
+    "version": "2.5.0",
+    "status": "planned",
+    "decision_source": "local_policy",
+    "simulation": true,
+    "selected_model": "gpt-6.1-sol",
+    "backend": "codex",
+    "requested_effort": "high",
+    "effort_note": "native_codex_setting_requested",
+    "reason": "deterministic-family-fallback",
+    "candidate_count": 2,
+    "decision_model": "openai/gpt-6-luna-decisions",
+    "decision_metrics": null,
+    "decision_cost": {
+      "new_request": false,
+      "reported_cost_usd": null,
+      "local_fee_check": false,
+      "cost_owner": "openrouter",
+      "account_limit_verified": false
+    },
+    "notes": [
+      "offline_no_model_called"
+    ],
+    "decision_call_attempted": false,
+    "decision_response_received": false,
+    "decision_model_called": false,
+    "validation_status": "not_executed"
+  },
+  {
+    "example": "task-document.json",
+    "version": "2.5.0",
+    "status": "planned",
+    "decision_source": "local_policy",
+    "simulation": true,
+    "selected_model": "gpt-6-luna",
+    "backend": "codex",
+    "requested_effort": "low",
+    "effort_note": "native_codex_setting_requested",
+    "reason": "deterministic-family-fallback",
+    "candidate_count": 3,
+    "decision_model": "openai/gpt-6-luna-decisions",
+    "decision_metrics": null,
+    "decision_cost": {
+      "new_request": false,
+      "reported_cost_usd": null,
+      "local_fee_check": false,
+      "cost_owner": "openrouter",
+      "account_limit_verified": false
+    },
+    "notes": [
+      "offline_no_model_called"
+    ],
+    "decision_call_attempted": false,
+    "decision_response_received": false,
+    "decision_model_called": false,
+    "validation_status": "not_executed"
+  },
+  {
+    "example": "task-environment.json",
+    "version": "2.5.0",
+    "status": "planned",
+    "decision_source": "local_policy",
+    "simulation": true,
+    "selected_model": "gpt-6.1-sol",
+    "backend": "codex",
+    "requested_effort": "medium",
+    "effort_note": "native_codex_setting_requested",
+    "reason": "deterministic-family-fallback",
+    "candidate_count": 3,
+    "decision_model": "openai/gpt-6-luna-decisions",
+    "decision_metrics": null,
+    "decision_cost": {
+      "new_request": false,
+      "reported_cost_usd": null,
+      "local_fee_check": false,
+      "cost_owner": "openrouter",
+      "account_limit_verified": false
+    },
+    "notes": [
+      "offline_no_model_called"
+    ],
+    "decision_call_attempted": false,
+    "decision_response_received": false,
+    "decision_model_called": false,
+    "validation_status": "not_executed"
+  },
+  {
+    "example": "task-public-summary.json",
+    "version": "2.5.0",
+    "status": "planned",
+    "decision_source": "local_policy",
+    "simulation": true,
+    "selected_model": "xingchen-agi/xing4.0-29b-a4b:free",
+    "backend": "openrouter",
+    "requested_effort": null,
+    "effort_note": "free_worker_native_effort_not_configured",
+    "reason": "eligible-free-worker",
+    "candidate_count": 19,
+    "decision_model": "openai/gpt-6-luna-decisions",
+    "decision_metrics": null,
+    "decision_cost": {
+      "new_request": false,
+      "reported_cost_usd": null,
+      "local_fee_check": false,
+      "cost_owner": "openrouter",
+      "account_limit_verified": false
+    },
+    "notes": [
+      "offline_no_model_called"
+    ],
+    "decision_call_attempted": false,
+    "decision_response_received": false,
+    "decision_model_called": false,
+    "validation_status": "not_executed"
+  },
+  {
+    "example": "task-rust.json",
+    "version": "2.5.0",
+    "status": "planned",
+    "decision_source": "local_policy",
+    "simulation": true,
+    "selected_model": "gpt-6.1-sol",
+    "backend": "codex",
+    "requested_effort": "medium",
+    "effort_note": "native_codex_setting_requested",
+    "reason": "deterministic-family-fallback",
+    "candidate_count": 3,
+    "decision_model": "openai/gpt-6-luna-decisions",
+    "decision_metrics": null,
+    "decision_cost": {
+      "new_request": false,
+      "reported_cost_usd": null,
+      "local_fee_check": false,
+      "cost_owner": "openrouter",
+      "account_limit_verified": false
+    },
+    "notes": [
+      "offline_no_model_called"
+    ],
+    "decision_call_attempted": false,
+    "decision_response_received": false,
+    "decision_model_called": false,
+    "validation_status": "not_executed"
+  },
+  {
+    "example": "task-terra.json",
+    "version": "2.5.0",
+    "status": "planned",
+    "decision_source": "explicit_model",
+    "simulation": true,
+    "selected_model": "gpt-5.6-terra",
+    "backend": "codex",
+    "requested_effort": "medium",
+    "effort_note": "native_codex_setting_requested",
+    "reason": "exact-model-pin",
+    "candidate_count": 1,
+    "decision_model": "openai/gpt-6-luna-decisions",
+    "decision_metrics": null,
+    "decision_cost": {
+      "new_request": false,
+      "reported_cost_usd": null,
+      "local_fee_check": false,
+      "cost_owner": "openrouter",
+      "account_limit_verified": false
+    },
+    "notes": [],
+    "decision_call_attempted": false,
+    "decision_response_received": false,
+    "decision_model_called": false,
+    "validation_status": "not_executed"
+  }
+]

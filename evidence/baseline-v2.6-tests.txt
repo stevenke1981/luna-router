@@ -1,0 +1,13 @@
+======================================================================
+FAIL: test_install_does_not_modify_codex_config (test_free_agents.FreeAgentTests.test_install_does_not_modify_codex_config)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/mnt/data/work-v270/luna-router-v2.6.0/tests/test_free_agents.py", line 191, in test_install_does_not_modify_codex_config
+    self.assertIn(".codex", tomllib.loads(bridge.read_text(encoding="utf-8"))["developer_instructions"])
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: '.codex' not found in 'Native OpenRouter free candidate. This agent works ONLY when the PARENT Codex provider is configured as OpenRouter. A custom agent TOML cannot change model_provider. Do not claim this is the selected provider unless Codex execution confirms it. Never exfiltrate secrets or sensitive project material. Tools may be missing despite a supported-parameters catalog claim; if unavailable, report the limitation. Never claim a task was tested without a real independent test result.'
+
+----------------------------------------------------------------------
+Ran 235 tests in 14.628s
+
+FAILED (failures=1)

@@ -1,0 +1,291 @@
+test_pinned_model_is_not_replaced_with_default (test_auto_cli_integration.AutoCliIntegration.test_pinned_model_is_not_replaced_with_default) ... ok
+test_run_auto_chooses_model_when_discovery_succeeds_and_starts_once (test_auto_cli_integration.AutoCliIntegration.test_run_auto_chooses_model_when_discovery_succeeds_and_starts_once) ... ok
+test_run_auto_executes_default_worker_when_app_server_is_broken (test_auto_cli_integration.AutoCliIntegration.test_run_auto_executes_default_worker_when_app_server_is_broken) ... ok
+test_auto_metadata_never_contains_task_or_summary (test_auto_routing.AutoRoutingTests.test_auto_metadata_never_contains_task_or_summary) ... ok
+test_auto_uses_remote_decider_without_summary_approval_but_only_metadata (test_auto_routing.AutoRoutingTests.test_auto_uses_remote_decider_without_summary_approval_but_only_metadata) ... {"event": "luna_request_started", "version": "2.7.0", "model": "openai/gpt-6-luna-decisions", "endpoint": "/api/alpha/decisions"}
+{"event": "luna_response_received", "version": "2.7.0", "model": "openai/gpt-6-luna-decisions", "response_id": null}
+ok
+test_auto_without_key_does_not_request_remote_inference (test_auto_routing.AutoRoutingTests.test_auto_without_key_does_not_request_remote_inference) ... ok
+test_collect_surfaces_sanitized_model_list_error_and_login (test_auto_routing.AutoRoutingTests.test_collect_surfaces_sanitized_model_list_error_and_login) ... ok
+test_default_mode_is_auto_and_flags_override_it (test_auto_routing.AutoRoutingTests.test_default_mode_is_auto_and_flags_override_it) ... ok
+test_explicit_model_pin_skips_decisions (test_auto_routing.AutoRoutingTests.test_explicit_model_pin_skips_decisions) ... ok
+test_high_risk_and_explicit_pin_disallow_unspecified_default (test_auto_routing.AutoRoutingTests.test_high_risk_and_explicit_pin_disallow_unspecified_default) ... ok
+test_inline_prompt_is_classified_locally_without_luna_call (test_auto_routing.AutoRoutingTests.test_inline_prompt_is_classified_locally_without_luna_call) ... ok
+test_no_external_never_creates_metadata (test_auto_routing.AutoRoutingTests.test_no_external_never_creates_metadata) ... ok
+test_no_external_task_with_key_does_not_call_decision (test_auto_routing.AutoRoutingTests.test_no_external_task_with_key_does_not_call_decision) ... ok
+test_public_text_only_can_route_to_verified_free_worker (test_auto_routing.AutoRoutingTests.test_public_text_only_can_route_to_verified_free_worker) ... {"event": "worker_dispatch", "version": "2.7.0", "backend": "openrouter", "requested_model": "xingchen-agi/xing4.0-29b-a4b:free", "requested_effort": null}
+ok
+test_run_auto_with_key_invokes_luna_without_online_flag (test_auto_routing.AutoRoutingTests.test_run_auto_with_key_invokes_luna_without_online_flag) ... ok
+test_run_auto_without_online_flag_starts_codex_worker (test_auto_routing.AutoRoutingTests.test_run_auto_without_online_flag_starts_codex_worker) ... ok
+test_run_offline_flag_forbids_luna_even_with_key (test_auto_routing.AutoRoutingTests.test_run_offline_flag_forbids_luna_even_with_key) ... ok
+test_safe_default_fallback_does_not_pretend_to_switch_model (test_auto_routing.AutoRoutingTests.test_safe_default_fallback_does_not_pretend_to_switch_model) ... {"event": "worker_dispatch", "version": "2.7.0", "backend": "codex_default", "requested_model": null, "requested_effort": null}
+ok
+test_unknown_login_does_not_run_default (test_auto_routing.AutoRoutingTests.test_unknown_login_does_not_run_default) ... ok
+test_explicit_configuration_and_stdin (test_codex_backend.CommandTests.test_explicit_configuration_and_stdin) ... ok
+test_rejects_unsafe_sandbox_and_invalid_identifiers (test_codex_backend.CommandTests.test_rejects_unsafe_sandbox_and_invalid_identifiers) ... ok
+test_auth_status_is_classified_without_exposing_raw_output (test_codex_backend.DiscoveryTests.test_auth_status_is_classified_without_exposing_raw_output) ... ok
+test_auth_timeout_is_unknown (test_codex_backend.DiscoveryTests.test_auth_timeout_is_unknown) ... ok
+test_eof_during_handshake_is_not_empty_success (test_codex_backend.DiscoveryTests.test_eof_during_handshake_is_not_empty_success) ... ok
+test_paginated_catalog_normalization_and_no_turn_start (test_codex_backend.DiscoveryTests.test_paginated_catalog_normalization_and_no_turn_start) ... ok
+test_repeated_cursor_fails_and_reaps_server (test_codex_backend.DiscoveryTests.test_repeated_cursor_fails_and_reaps_server) ... ok
+test_rpc_timeout_cleans_up (test_codex_backend.DiscoveryTests.test_rpc_timeout_cleans_up) ... ok
+test_exit_zero_without_terminal_is_unknown (test_codex_backend.ExecutionTests.test_exit_zero_without_terminal_is_unknown) ... ok
+test_failed_terminal_is_failed_even_with_exit_zero (test_codex_backend.ExecutionTests.test_failed_terminal_is_failed_even_with_exit_zero) ... ok
+test_fresh_auth_overrules_stale_runtime (test_codex_backend.ExecutionTests.test_fresh_auth_overrules_stale_runtime) ... ok
+test_model_and_effort_must_be_in_fresh_catalog (test_codex_backend.ExecutionTests.test_model_and_effort_must_be_in_fresh_catalog) ... ok
+test_one_turn_uses_stdin_and_records_only_observed_terminal (test_codex_backend.ExecutionTests.test_one_turn_uses_stdin_and_records_only_observed_terminal) ... ok
+test_output_tail_is_bounded_and_excludes_raw_tool_text (test_codex_backend.ExecutionTests.test_output_tail_is_bounded_and_excludes_raw_tool_text) ... ok
+test_simulated_runtime_never_launches_discovery_or_execution (test_codex_backend.ExecutionTests.test_simulated_runtime_never_launches_discovery_or_execution) ... ok
+test_timeout_never_retries_or_claims_completion (test_codex_backend.ExecutionTests.test_timeout_never_retries_or_claims_completion) ... ok
+test_unsafe_sandbox_rejected_before_discovery (test_codex_backend.ExecutionTests.test_unsafe_sandbox_rejected_before_discovery) ... ok
+test_fee_status_reveals_no_keys_or_fake_verified_account_limits (test_cost_control.ExpenseIsolationTests.test_fee_status_reveals_no_keys_or_fake_verified_account_limits) ... ok
+test_no_check_codex_subscription (test_cost_control.ExpenseIsolationTests.test_no_check_codex_subscription) ... ok
+test_no_check_openrouter_even_with_bad_missing_cost_configuration (test_cost_control.ExpenseIsolationTests.test_no_check_openrouter_even_with_bad_missing_cost_configuration) ... ok
+test_openai_direct_has_separate_database_from_openrouter (test_cost_control.ExpenseIsolationTests.test_openai_direct_has_separate_database_from_openrouter) ... ok
+test_openai_direct_invalid_money_is_blocked_before_dispatch (test_cost_control.ExpenseIsolationTests.test_openai_direct_invalid_money_is_blocked_before_dispatch) ... ok
+test_openai_direct_requires_enabled_fee_settings (test_cost_control.ExpenseIsolationTests.test_openai_direct_requires_enabled_fee_settings) ... ok
+test_openai_direct_reserves_settles_and_limits_spend (test_cost_control.ExpenseIsolationTests.test_openai_direct_reserves_settles_and_limits_spend) ... ok
+test_openai_unknown_cost_retains_reservation (test_cost_control.ExpenseIsolationTests.test_openai_unknown_cost_retains_reservation) ... ok
+test_parallel_openai_fee_budget_is_atomic (test_cost_control.ExpenseIsolationTests.test_parallel_openai_fee_budget_is_atomic) ... ok
+test_unsupported_backend_is_not_silently_exempt (test_cost_control.ExpenseIsolationTests.test_unsupported_backend_is_not_silently_exempt) ... ok
+test_each_criterion_can_trigger_fallback (test_decision.PolicyTests.test_each_criterion_can_trigger_fallback) ... ok
+test_invalid_policy_inputs (test_decision.PolicyTests.test_invalid_policy_inputs) ... ok
+test_reported_confidence_does_not_replace_probability (test_decision.PolicyTests.test_reported_confidence_does_not_replace_probability) ... ok
+test_threshold_boundaries (test_decision.PolicyTests.test_threshold_boundaries) ... ok
+test_candidate_count (test_decision.RequestTests.test_candidate_count) ... ok
+test_decision_model_is_fixed_luna_without_a_free_variant (test_decision.RequestTests.test_decision_model_is_fixed_luna_without_a_free_variant) ... ok
+test_full_request_limit (test_decision.RequestTests.test_full_request_limit) ... ok
+test_invalid_candidates (test_decision.RequestTests.test_invalid_candidates) ... ok
+test_invalid_efforts (test_decision.RequestTests.test_invalid_efforts) ... ok
+test_luna_worker_is_distinct_from_the_decider (test_decision.RequestTests.test_luna_worker_is_distinct_from_the_decider) ... ok
+test_non_json_state (test_decision.RequestTests.test_non_json_state) ... ok
+test_state_byte_limit_including_multibyte_characters (test_decision.RequestTests.test_state_byte_limit_including_multibyte_characters) ... ok
+test_valid_request_and_input_isolation (test_decision.RequestTests.test_valid_request_and_input_isolation) ... ok
+test_choice_must_match_maximum (test_decision.ResponseTests.test_choice_must_match_maximum) ... ok
+test_confidence_is_optional (test_decision.ResponseTests.test_confidence_is_optional) ... ok
+test_distribution_keys_must_match (test_decision.ResponseTests.test_distribution_keys_must_match) ... ok
+test_errors_and_wrong_answer_types (test_decision.ResponseTests.test_errors_and_wrong_answer_types) ... ok
+test_invalid_confidence (test_decision.ResponseTests.test_invalid_confidence) ... ok
+test_invalid_expected_options (test_decision.ResponseTests.test_invalid_expected_options) ... ok
+test_invalid_numbers (test_decision.ResponseTests.test_invalid_numbers) ... ok
+test_missing_required_fields (test_decision.ResponseTests.test_missing_required_fields) ... ok
+test_response_model_is_preserved_for_logging (test_decision.ResponseTests.test_response_model_is_preserved_for_logging) ... ok
+test_sum_tolerance_and_no_renormalization (test_decision.ResponseTests.test_sum_tolerance_and_no_renormalization) ... ok
+test_ties_and_one_candidate (test_decision.ResponseTests.test_ties_and_one_candidate) ... ok
+test_unexpected_or_forged_choice (test_decision.ResponseTests.test_unexpected_or_forged_choice) ... ok
+test_valid_response_keeps_confidence_separate (test_decision.ResponseTests.test_valid_response_keeps_confidence_separate) ... ok
+test_a_completed_turn_without_check_never_increments_failures (test_escalation.PersistentTests.test_a_completed_turn_without_check_never_increments_failures) ... ok
+test_environment_or_timeout_unknown_never_upgrades (test_escalation.PersistentTests.test_environment_or_timeout_unknown_never_upgrades) ... ok
+test_explicit_success_stops_retry_and_not_just_model_claim (test_escalation.PersistentTests.test_explicit_success_stops_retry_and_not_just_model_claim) ... ok
+test_failure_one_does_nothing_two_upgrades_and_counter_resets (test_escalation.PersistentTests.test_failure_one_does_nothing_two_upgrades_and_counter_resets) ... ok
+test_fingerprint_and_attempt_cannot_cross_jobs (test_escalation.PersistentTests.test_fingerprint_and_attempt_cannot_cross_jobs) ... ok
+test_requested_pin_exhausts_at_max (test_escalation.PersistentTests.test_requested_pin_exhausts_at_max) ... ok
+test_explicit_model_pin_never_changes_family (test_escalation.UpgradeTests.test_explicit_model_pin_never_changes_family) ... ok
+test_family_order_luna_terra_sol_astra (test_escalation.UpgradeTests.test_family_order_luna_terra_sol_astra) ... ok
+test_free_text_without_native_effort_ascends_after_threshold (test_escalation.UpgradeTests.test_free_text_without_native_effort_ascends_after_threshold) ... ok
+test_max_not_fabricated_when_runtime_only_supports_xhigh (test_escalation.UpgradeTests.test_max_not_fabricated_when_runtime_only_supports_xhigh) ... ok
+test_skips_missing_tier_and_does_not_downgrade (test_escalation.UpgradeTests.test_skips_missing_tier_and_does_not_downgrade) ... ok
+test_two_failures_are_required_one_by_one_until_native_max_then_next_tier (test_escalation.UpgradeTests.test_two_failures_are_required_one_by_one_until_native_max_then_next_tier) ... ok
+test_cannot_override_model_or_provider (test_free_agents.FreeAgentTests.test_cannot_override_model_or_provider) ... ok
+test_codex_argv_is_stdin_and_no_persistent_config (test_free_agents.FreeAgentTests.test_codex_argv_is_stdin_and_no_persistent_config) ... ok
+test_decisions_uses_structured_endpoint_not_chat (test_free_agents.FreeAgentTests.test_decisions_uses_structured_endpoint_not_chat) ... ok
+test_duplicate_ids_fail (test_free_agents.FreeAgentTests.test_duplicate_ids_fail) ... ok
+test_dynamic_free_bounded_shortlist (test_free_agents.FreeAgentTests.test_dynamic_free_bounded_shortlist) ... ok
+test_dynamic_free_pin_outside_shortlist (test_free_agents.FreeAgentTests.test_dynamic_free_pin_outside_shortlist) ... ok
+test_each_supported_special_kind_has_bridge (test_free_agents.FreeAgentTests.test_each_supported_special_kind_has_bridge) ... ok
+test_embedding_uses_embedding_endpoint (test_free_agents.FreeAgentTests.test_embedding_uses_embedding_endpoint) ... ok
+test_free_rechecked_at_every_call (test_free_agents.FreeAgentTests.test_free_rechecked_at_every_call) ... ok
+test_install_does_not_modify_codex_config (test_free_agents.FreeAgentTests.test_install_does_not_modify_codex_config) ... ok
+test_live_catalog_all_modalities (test_free_agents.FreeAgentTests.test_live_catalog_all_modalities) ... ok
+test_privacy_requires_explicit_public_or_approved (test_free_agents.FreeAgentTests.test_privacy_requires_explicit_public_or_approved) ... ok
+test_private_or_tool_task_never_gets_dynamic_free_text (test_free_agents.FreeAgentTests.test_private_or_tool_task_never_gets_dynamic_free_text) ... ok
+test_real_snapshot_generates_one_per_model (test_free_agents.FreeAgentTests.test_real_snapshot_generates_one_per_model) ... ok
+test_reject_overwriting_unmanaged_agent (test_free_agents.FreeAgentTests.test_reject_overwriting_unmanaged_agent) ... ok
+test_removes_retired_managed_agent (test_free_agents.FreeAgentTests.test_removes_retired_managed_agent) ... ok
+test_rerank_uses_rerank_endpoint (test_free_agents.FreeAgentTests.test_rerank_uses_rerank_endpoint) ... ok
+test_slug_stable_path_safe_and_collision_resistant (test_free_agents.FreeAgentTests.test_slug_stable_path_safe_and_collision_resistant) ... ok
+test_text_invocation_uses_selected_verified_model (test_free_agents.FreeAgentTests.test_text_invocation_uses_selected_verified_model) ... ok
+test_text_model_without_tools_disables_native_shell (test_free_agents.FreeAgentTests.test_text_model_without_tools_disables_native_shell) ... ok
+test_validate_zero_free_slugs_and_reject_paid_surprise (test_free_agents.FreeAgentTests.test_validate_zero_free_slugs_and_reject_paid_surprise) ... ok
+test_cache_expiry_and_clock_regression_remain_unchanged (test_ledger.LedgerTests.test_cache_expiry_and_clock_regression_remain_unchanged) ... ok
+test_concurrent_free_and_paid_share_overall_request_cap (test_ledger.LedgerTests.test_concurrent_free_and_paid_share_overall_request_cap) ... ok
+test_concurrent_instances_cannot_oversubscribe_daily_money (test_ledger.LedgerTests.test_concurrent_instances_cannot_oversubscribe_daily_money) ... ok
+test_conflicting_settlement_does_not_change_known_cost (test_ledger.LedgerTests.test_conflicting_settlement_does_not_change_known_cost) ... ok
+test_cost_is_stored_as_integer_nanousd (test_ledger.LedgerTests.test_cost_is_stored_as_integer_nanousd) ... ok
+test_daily_request_counts_reset_at_utc_boundary (test_ledger.LedgerTests.test_daily_request_counts_reset_at_utc_boundary) ... ok
+test_daily_reservation_and_overrun_reset_at_utc_boundary (test_ledger.LedgerTests.test_daily_reservation_and_overrun_reset_at_utc_boundary) ... ok
+test_database_write_failure_rolls_back_both_reservation_and_count (test_ledger.LedgerTests.test_database_write_failure_rolls_back_both_reservation_and_count) ... ok
+test_existing_cache_and_request_tables_are_preserved (test_ledger.LedgerTests.test_existing_cache_and_request_tables_are_preserved) ... ok
+test_free_and_decision_daily_counts_are_independent (test_ledger.LedgerTests.test_free_and_decision_daily_counts_are_independent) ... ok
+test_full_cap_is_reserved_not_estimated_cost (test_ledger.LedgerTests.test_full_cap_is_reserved_not_estimated_cost) ... ok
+test_invalid_actual_cost_never_releases_reservation (test_ledger.LedgerTests.test_invalid_actual_cost_never_releases_reservation) ... ok
+test_invalid_counter_and_timestamp_values_are_rejected (test_ledger.LedgerTests.test_invalid_counter_and_timestamp_values_are_rejected) ... ok
+test_invalid_spending_caps_create_no_request_or_reservation (test_ledger.LedgerTests.test_invalid_spending_caps_create_no_request_or_reservation) ... ok
+test_job_budget_combines_paid_decisions_and_free_workers (test_ledger.LedgerTests.test_job_budget_combines_paid_decisions_and_free_workers) ... ok
+test_known_cost_releases_only_unused_reservation (test_ledger.LedgerTests.test_known_cost_releases_only_unused_reservation) ... ok
+test_legacy_daily_setting_falls_back_separately (test_ledger.LedgerTests.test_legacy_daily_setting_falls_back_separately) ... ok
+test_minute_budget_counts_both_categories (test_ledger.LedgerTests.test_minute_budget_counts_both_categories) ... ok
+test_new_unknown_request_kinds_are_rejected (test_ledger.LedgerTests.test_new_unknown_request_kinds_are_rejected) ... ok
+test_no_response_does_not_release_reservation (test_ledger.LedgerTests.test_no_response_does_not_release_reservation) ... ok
+test_overrun_is_committed_before_raise_and_blocks_paid_for_day (test_ledger.LedgerTests.test_overrun_is_committed_before_raise_and_blocks_paid_for_day) ... ok
+test_repeated_known_settlement_is_idempotent (test_ledger.LedgerTests.test_repeated_known_settlement_is_idempotent) ... ok
+test_request_count_failure_rolls_back_paid_reservation (test_ledger.LedgerTests.test_request_count_failure_rolls_back_paid_reservation) ... ok
+test_unknown_cost_retains_full_reservation_and_can_be_resolved (test_ledger.LedgerTests.test_unknown_cost_retains_full_reservation_and_can_be_resolved) ... ok
+test_unknown_reservation_and_boolean_id_are_rejected (test_ledger.LedgerTests.test_unknown_reservation_and_boolean_id_are_rejected) ... ok
+test_zero_daily_allowance_blocks_before_request (test_ledger.LedgerTests.test_zero_daily_allowance_blocks_before_request) ... ok
+test_zero_known_cost_is_distinct_from_unknown (test_ledger.LedgerTests.test_zero_known_cost_is_distinct_from_unknown) ... ok
+test_catalog_marks_real_source_and_uses_full_modality_catalog (test_openrouter_backend.AdapterTests.test_catalog_marks_real_source_and_uses_full_modality_catalog) ... ok
+test_catalog_rejects_unexpected_pagination (test_openrouter_backend.AdapterTests.test_catalog_rejects_unexpected_pagination) ... ok
+test_completion_requires_free_model_and_context_headroom (test_openrouter_backend.AdapterTests.test_completion_requires_free_model_and_context_headroom) ... ok
+test_decide_delegates_paid_spend_limits_to_openrouter_without_mutation (test_openrouter_backend.AdapterTests.test_decide_delegates_paid_spend_limits_to_openrouter_without_mutation) ... ok
+test_free_completion_is_single_model_with_no_tools_or_paid_fallback (test_openrouter_backend.AdapterTests.test_free_completion_is_single_model_with_no_tools_or_paid_fallback) ... ok
+test_partial_outputs_are_distinguished (test_openrouter_backend.AdapterTests.test_partial_outputs_are_distinguished) ... ok
+test_quota_returns_only_daily_counts (test_openrouter_backend.AdapterTests.test_quota_returns_only_daily_counts) ... ok
+test_reported_nonzero_free_usage_is_warning_not_local_spend_gate (test_openrouter_backend.AdapterTests.test_reported_nonzero_free_usage_is_warning_not_local_spend_gate) ... ok
+test_context_and_modalities (test_openrouter_backend.FreeRecordTests.test_context_and_modalities) ... ok
+test_expiration (test_openrouter_backend.FreeRecordTests.test_expiration) ... ok
+test_filter_preserves_real_records (test_openrouter_backend.FreeRecordTests.test_filter_preserves_real_records) ... ok
+test_nonzero_negative_nonfinite_and_unknown_prices_fail_closed (test_openrouter_backend.FreeRecordTests.test_nonzero_negative_nonfinite_and_unknown_prices_fail_closed) ... ok
+test_required_prices_and_ids (test_openrouter_backend.FreeRecordTests.test_required_prices_and_ids) ... ok
+test_zero_price_strings_and_alias (test_openrouter_backend.FreeRecordTests.test_zero_price_strings_and_alias) ... ok
+test_decision_privacy_preferences_preserved_and_tools_rejected (test_openrouter_backend.PaidDecisionTests.test_decision_privacy_preferences_preserved_and_tools_rejected) ... ok
+test_disabled_policy_or_bad_catalog_rejected (test_openrouter_backend.PaidDecisionTests.test_disabled_policy_or_bad_catalog_rejected) ... ok
+test_exact_model_only_no_mercury_fallback (test_openrouter_backend.PaidDecisionTests.test_exact_model_only_no_mercury_fallback) ... ok
+test_invalid_identity_or_capability_rejected (test_openrouter_backend.PaidDecisionTests.test_invalid_identity_or_capability_rejected) ... ok
+test_invalid_success_json_does_not_retry (test_openrouter_backend.PaidDecisionTests.test_invalid_success_json_does_not_retry) ... ok
+test_luna_is_available_but_not_in_free_pool (test_openrouter_backend.PaidDecisionTests.test_luna_is_available_but_not_in_free_pool) ... ok
+test_missing_cost_is_unknown_but_valid_response (test_openrouter_backend.PaidDecisionTests.test_missing_cost_is_unknown_but_valid_response) ... ok
+test_no_price_gate_even_if_old_config_fields_present (test_openrouter_backend.PaidDecisionTests.test_no_price_gate_even_if_old_config_fields_present) ... ok
+test_request_size_question_and_context_limits_are_not_price_checks (test_openrouter_backend.PaidDecisionTests.test_request_size_question_and_context_limits_are_not_price_checks) ... ok
+test_usage_cost_is_observational_and_never_blocks_decisions (test_openrouter_backend.PaidDecisionTests.test_usage_cost_is_observational_and_never_blocks_decisions) ... ok
+test_authenticated_post (test_openrouter_backend.TransportTests.test_authenticated_post) ... ok
+test_external_url_and_redirect_paths_are_rejected (test_openrouter_backend.TransportTests.test_external_url_and_redirect_paths_are_rejected) ... ok
+test_http_200_error_is_not_a_success (test_openrouter_backend.TransportTests.test_http_200_error_is_not_a_success) ... ok
+test_http_errors_are_sanitized_and_retry_after_preserved (test_openrouter_backend.TransportTests.test_http_errors_are_sanitized_and_retry_after_preserved) ... ok
+test_nonfinite_or_duplicate_or_invalid_json_is_rejected (test_openrouter_backend.TransportTests.test_nonfinite_or_duplicate_or_invalid_json_is_rejected) ... ok
+test_nonfinite_outgoing_payload_is_rejected_before_network (test_openrouter_backend.TransportTests.test_nonfinite_outgoing_payload_is_rejected_before_network) ... ok
+test_post_requires_environment_key_and_does_not_run_when_missing (test_openrouter_backend.TransportTests.test_post_requires_environment_key_and_does_not_run_when_missing) ... ok
+test_public_catalog_does_not_need_or_send_token (test_openrouter_backend.TransportTests.test_public_catalog_does_not_need_or_send_token) ... ok
+test_redirect_responses_fail_without_retry (test_openrouter_backend.TransportTests.test_redirect_responses_fail_without_retry) ... ok
+test_transport_error_does_not_expose_details (test_openrouter_backend.TransportTests.test_transport_error_does_not_expose_details) ... ok
+test_complex_requires_sol_or_astra (test_policy.CandidateTests.test_complex_requires_sol_or_astra) ... ok
+test_exact_pin_preserved_and_not_relaxed_for_high_risk (test_policy.CandidateTests.test_exact_pin_preserved_and_not_relaxed_for_high_risk) ... ok
+test_explicit_legacy_and_allow_legacy_auto (test_policy.CandidateTests.test_explicit_legacy_and_allow_legacy_auto) ... ok
+test_floor_escalation_only_for_implementation_failure (test_policy.CandidateTests.test_floor_escalation_only_for_implementation_failure) ... ok
+test_high_risk_and_extreme_require_astra (test_policy.CandidateTests.test_high_risk_and_extreme_require_astra) ... ok
+test_ineligible_modern_does_not_suppress_usable_legacy (test_policy.CandidateTests.test_ineligible_modern_does_not_suppress_usable_legacy) ... ok
+test_legacy_is_only_a_fallback_by_default (test_policy.CandidateTests.test_legacy_is_only_a_fallback_by_default) ... ok
+test_native_efforts_are_intersected_and_capped (test_policy.CandidateTests.test_native_efforts_are_intersected_and_capped) ... ok
+test_no_synthetic_or_unknown_model_ids (test_policy.CandidateTests.test_no_synthetic_or_unknown_model_ids) ... ok
+test_runtime_is_required_for_gpt (test_policy.CandidateTests.test_runtime_is_required_for_gpt) ... ok
+test_actual_objective_bounds_input_when_estimate_is_absent (test_policy.FreeCandidateTests.test_actual_objective_bounds_input_when_estimate_is_absent) ... ok
+test_free_context_reserve (test_policy.FreeCandidateTests.test_free_context_reserve) ... ok
+test_free_eligible_and_fallback_preference (test_policy.FreeCandidateTests.test_free_eligible_and_fallback_preference) ... ok
+test_free_hard_gates (test_policy.FreeCandidateTests.test_free_hard_gates) ... ok
+test_pin_does_not_bypass_free_policy (test_policy.FreeCandidateTests.test_pin_does_not_bypass_free_policy) ... ok
+test_profile_gate_and_missing_free_catalog (test_policy.FreeCandidateTests.test_profile_gate_and_missing_free_catalog) ... ok
+test_provider_output_limit_is_applied_before_selection (test_policy.FreeCandidateTests.test_provider_output_limit_is_applied_before_selection) ... ok
+test_stale_free_list_cannot_bypass_profile_or_context_gates (test_policy.FreeCandidateTests.test_stale_free_list_cannot_bypass_profile_or_context_gates) ... ok
+test_text_worker_rejects_visual_qa_even_if_profile_lists_it (test_policy.FreeCandidateTests.test_text_worker_rejects_visual_qa_even_if_profile_lists_it) ... ok
+test_defaults_and_allowlist (test_policy.NormalizeTests.test_defaults_and_allowlist) ... ok
+test_invalid_schema_values (test_policy.NormalizeTests.test_invalid_schema_values) ... ok
+test_tool_defaults (test_policy.NormalizeTests.test_tool_defaults) ... ok
+test_approval_and_nonempty_summary_both_required (test_policy.PrivacyTests.test_approval_and_nonempty_summary_both_required) ... ok
+test_defaults_and_no_external_emit_nothing (test_policy.PrivacyTests.test_defaults_and_no_external_emit_nothing) ... ok
+test_metadata_only_never_sends_objective (test_policy.PrivacyTests.test_metadata_only_never_sends_objective) ... ok
+test_oversize_is_rejected_not_truncated (test_policy.PrivacyTests.test_oversize_is_rejected_not_truncated) ... ok
+test_public_uses_objective (test_policy.PrivacyTests.test_public_uses_objective) ... ok
+test_compatibility_preference (test_policy.SelectionTests.test_compatibility_preference) ... ok
+test_effort_floor_and_cap_enforced (test_policy.SelectionTests.test_effort_floor_and_cap_enforced) ... ok
+test_family_preferences_and_priority (test_policy.SelectionTests.test_family_preferences_and_priority) ... ok
+test_no_pin_substitution_even_with_supplied_candidate_list (test_policy.SelectionTests.test_no_pin_substitution_even_with_supplied_candidate_list) ... ok
+test_stale_list_cannot_lower_family_floor (test_policy.SelectionTests.test_stale_list_cannot_lower_family_floor) ... ok
+test_entrypoint_with_no_subcommand_defaults_to_run (test_required_online.EntryAndCredentialTests.test_entrypoint_with_no_subcommand_defaults_to_run) ... ok
+test_mcp_explicit_live_false_only_maps_to_explicit_offline (test_required_online.EntryAndCredentialTests.test_mcp_explicit_live_false_only_maps_to_explicit_offline) ... ok
+test_mcp_run_omitted_live_uses_default_online_main (test_required_online.EntryAndCredentialTests.test_mcp_run_omitted_live_uses_default_online_main) ... ok
+test_mcp_schema_defaults_to_live_true (test_required_online.EntryAndCredentialTests.test_mcp_schema_defaults_to_live_true) ... ok
+test_mcp_stdio_initializes_and_exposes_tools (test_required_online.EntryAndCredentialTests.test_mcp_stdio_initializes_and_exposes_tools) ... ok
+test_mcp_string_false_is_rejected (test_required_online.EntryAndCredentialTests.test_mcp_string_false_is_rejected) ... ok
+test_old_config_cannot_choose_offline_implicitly (test_required_online.EntryAndCredentialTests.test_old_config_cannot_choose_offline_implicitly) ... ok
+test_process_key_takes_precedence (test_required_online.EntryAndCredentialTests.test_process_key_takes_precedence) ... ok
+test_windows_machine_environment_fallback (test_required_online.EntryAndCredentialTests.test_windows_machine_environment_fallback) ... ok
+test_worker_cannot_recursively_route (test_required_online.EntryAndCredentialTests.test_worker_cannot_recursively_route) ... ok
+test_installs_full_runtime_and_absolute_skill_cross_directory (test_required_online.FullInstallerTests.test_installs_full_runtime_and_absolute_skill_cross_directory) ... ok
+test_mcp_registration_is_idempotent_preserves_unrelated_model (test_required_online.FullInstallerTests.test_mcp_registration_is_idempotent_preserves_unrelated_model) ... ok
+test_modified_release_is_rejected_before_install (test_required_online.FullInstallerTests.test_modified_release_is_rejected_before_install) ... ok
+test_unmanaged_mcp_conflict_is_not_overwritten (test_required_online.FullInstallerTests.test_unmanaged_mcp_conflict_is_not_overwritten) ... ok
+test_401_402_404_429_503_never_run_local_worker (test_required_online.RequiredOnlineHttpTests.test_401_402_404_429_503_never_run_local_worker) ... ok
+test_auto_alias_also_requires_online (test_required_online.RequiredOnlineHttpTests.test_auto_alias_also_requires_online) ... ok
+test_default_run_posts_luna_then_launches_worker_even_single_candidate (test_required_online.RequiredOnlineHttpTests.test_default_run_posts_luna_then_launches_worker_even_single_candidate) ... ok
+test_discovery_error_is_capability_block_not_fake_luna (test_required_online.RequiredOnlineHttpTests.test_discovery_error_is_capability_block_not_fake_luna) ... ok
+test_explicit_offline_is_respected (test_required_online.RequiredOnlineHttpTests.test_explicit_offline_is_respected) ... ok
+test_low_confidence_is_rejected_not_local_success (test_required_online.RequiredOnlineHttpTests.test_low_confidence_is_rejected_not_local_success) ... ok
+test_missing_key_is_error_not_offline_worker (test_required_online.RequiredOnlineHttpTests.test_missing_key_is_error_not_offline_worker) ... ok
+test_no_external_does_not_silently_become_local (test_required_online.RequiredOnlineHttpTests.test_no_external_does_not_silently_become_local) ... ok
+test_pinned_worker_still_uses_luna_for_effort (test_required_online.RequiredOnlineHttpTests.test_pinned_worker_still_uses_luna_for_effort) ... {"event": "routing_started", "version": "2.7.0", "mode": "luna", "required_online": true, "entrypoint": "/mnt/data/luna-router-v2.7.0/router.py", "key_source": "process"}
+{"event": "luna_request_started", "version": "2.7.0", "model": "openai/gpt-6-luna-decisions", "endpoint": "/api/alpha/decisions"}
+{"event": "luna_response_received", "version": "2.7.0", "model": "openai/gpt-6-luna-decisions", "response_id": "fixture-luna-1"}
+{"event": "worker_dispatch", "version": "2.7.0", "backend": "codex", "requested_model": "gpt-6.1-sol", "requested_effort": "high"}
+ok
+test_plan_calls_luna_but_does_not_execute (test_required_online.RequiredOnlineHttpTests.test_plan_calls_luna_but_does_not_execute) ... ok
+test_probe_makes_one_real_http_request_without_codex (test_required_online.RequiredOnlineHttpTests.test_probe_makes_one_real_http_request_without_codex) ... {"event": "luna_request_started", "version": "2.7.0", "operation": "probe", "model": "openai/gpt-6-luna-decisions"}
+ok
+test_retry_same_effort_failures_do_not_repeat_luna (test_required_online.RequiredOnlineHttpTests.test_retry_same_effort_failures_do_not_repeat_luna) ... ok
+test_two_new_runs_do_not_hide_behind_decision_cache (test_required_online.RequiredOnlineHttpTests.test_two_new_runs_do_not_hide_behind_decision_cache) ... ok
+test_wrong_model_response_never_counts_as_luna_success (test_required_online.RequiredOnlineHttpTests.test_wrong_model_response_never_counts_as_luna_success) ... ok
+test_failure_escalation_through_native_max_then_stronger_model (test_retry_integration.AutomaticRetryIntegrationTests.test_failure_escalation_through_native_max_then_stronger_model) ... ok
+test_fallback_is_blocked_when_worker_failed (test_retry_integration.AutomaticRetryIntegrationTests.test_fallback_is_blocked_when_worker_failed) ... ok
+test_job_change_refuses_instead_of_replacing_previous_state (test_retry_integration.AutomaticRetryIntegrationTests.test_job_change_refuses_instead_of_replacing_previous_state) ... ok
+test_next_worker_receives_only_authored_qa_context (test_retry_integration.AutomaticRetryIntegrationTests.test_next_worker_receives_only_authored_qa_context) ... ok
+test_unverified_requires_manual_feedback_not_autoretry (test_retry_integration.AutomaticRetryIntegrationTests.test_unverified_requires_manual_feedback_not_autoretry) ... ok
+test_database_failure_blocks_cli_without_model_request (test_router.IntegrationTests.test_database_failure_blocks_cli_without_model_request) ... ok
+test_demo_never_executes (test_router.IntegrationTests.test_demo_never_executes) ... ok
+test_failed_post_shows_attempted_not_successful (test_router.IntegrationTests.test_failed_post_shows_attempted_not_successful) ... {"event": "luna_request_started", "version": "2.7.0", "model": "openai/gpt-6-luna-decisions", "endpoint": "/api/alpha/decisions"}
+ok
+test_forged_choice_cannot_select_model_outside_eligible_set (test_router.IntegrationTests.test_forged_choice_cannot_select_model_outside_eligible_set) ... {"event": "luna_request_started", "version": "2.7.0", "model": "openai/gpt-6-luna-decisions", "endpoint": "/api/alpha/decisions"}
+{"event": "luna_response_received", "version": "2.7.0", "model": "openai/gpt-6-luna-decisions", "response_id": null}
+ok
+test_long_task_can_use_offline_and_pinned_routes (test_router.IntegrationTests.test_long_task_can_use_offline_and_pinned_routes) ... ok
+test_missing_or_malformed_usage_cost_not_a_fee_gate (test_router.IntegrationTests.test_missing_or_malformed_usage_cost_not_a_fee_gate) ... {"event": "luna_request_started", "version": "2.7.0", "model": "openai/gpt-6-luna-decisions", "endpoint": "/api/alpha/decisions"}
+{"event": "luna_response_received", "version": "2.7.0", "model": "openai/gpt-6-luna-decisions", "response_id": null}
+{"event": "luna_request_started", "version": "2.7.0", "model": "openai/gpt-6-luna-decisions", "endpoint": "/api/alpha/decisions"}
+{"event": "luna_response_received", "version": "2.7.0", "model": "openai/gpt-6-luna-decisions", "response_id": null}
+{"event": "luna_request_started", "version": "2.7.0", "model": "openai/gpt-6-luna-decisions", "endpoint": "/api/alpha/decisions"}
+{"event": "luna_response_received", "version": "2.7.0", "model": "openai/gpt-6-luna-decisions", "response_id": null}
+ok
+test_no_external_and_offline_do_not_call_luna (test_router.IntegrationTests.test_no_external_and_offline_do_not_call_luna) ... ok
+test_no_local_cost_check_for_openrouter_and_legacy_settings (test_router.IntegrationTests.test_no_local_cost_check_for_openrouter_and_legacy_settings) ... {"event": "luna_request_started", "version": "2.7.0", "model": "openai/gpt-6-luna-decisions", "endpoint": "/api/alpha/decisions"}
+{"event": "luna_response_received", "version": "2.7.0", "model": "openai/gpt-6-luna-decisions", "response_id": null}
+ok
+test_no_luna_model_does_not_fall_back_to_mercury (test_router.IntegrationTests.test_no_luna_model_does_not_fall_back_to_mercury) ... ok
+test_oversize_routing_summary_uses_local_fallback (test_router.IntegrationTests.test_oversize_routing_summary_uses_local_fallback) ... ok
+test_public_catalog_cli_output_can_be_used_as_offline_input (test_router.IntegrationTests.test_public_catalog_cli_output_can_be_used_as_offline_input) ... ok
+test_rate_limit_is_recorded_without_automatic_retry (test_router.IntegrationTests.test_rate_limit_is_recorded_without_automatic_retry) ... {"event": "luna_request_started", "version": "2.7.0", "model": "openai/gpt-6-luna-decisions", "endpoint": "/api/alpha/decisions"}
+ok
+test_unavailable_exact_pin_is_blocked (test_router.IntegrationTests.test_unavailable_exact_pin_is_blocked) ... ok
+test_valid_decision_and_cache_keep_native_setting_as_requested_only (test_router.IntegrationTests.test_valid_decision_and_cache_keep_native_setting_as_requested_only) ... {"event": "luna_request_started", "version": "2.7.0", "model": "openai/gpt-6-luna-decisions", "endpoint": "/api/alpha/decisions"}
+{"event": "luna_response_received", "version": "2.7.0", "model": "openai/gpt-6-luna-decisions", "response_id": null}
+ok
+test_blocker_does_not_escalate (test_runtime_controller.RuntimeControllerTests.test_blocker_does_not_escalate) ... ok
+test_ceiling_model_escalation_signal (test_runtime_controller.RuntimeControllerTests.test_ceiling_model_escalation_signal) ... ok
+test_complex_goes_up_before_failure (test_runtime_controller.RuntimeControllerTests.test_complex_goes_up_before_failure) ... ok
+test_floor_prevents_overcooling (test_runtime_controller.RuntimeControllerTests.test_floor_prevents_overcooling) ... ok
+test_routine_two_down (test_runtime_controller.RuntimeControllerTests.test_routine_two_down) ... ok
+test_state_nonmutating (test_runtime_controller.RuntimeControllerTests.test_state_nonmutating) ... ok
+test_success_requires_evidence (test_runtime_controller.RuntimeControllerTests.test_success_requires_evidence) ... ok
+test_two_failures_up (test_runtime_controller.RuntimeControllerTests.test_two_failures_up) ... ok
+test_unknown_does_not_ramp (test_runtime_controller.RuntimeControllerTests.test_unknown_does_not_ramp) ... ok
+test_unsupported_max_not_generated (test_runtime_controller.RuntimeControllerTests.test_unsupported_max_not_generated) ... ok
+test_invalid_key_metadata_is_rejected_without_model_call (test_spend_status.SpendStatusTests.test_invalid_key_metadata_is_rejected_without_model_call) ... ok
+test_returns_only_spend_cap_fields (test_spend_status.SpendStatusTests.test_returns_only_spend_cap_fields) ... ok
+test_unlimited_key_is_not_mislabeled_free (test_spend_status.SpendStatusTests.test_unlimited_key_is_not_mislabeled_free) ... ok
+test_absent_checker_is_environment_block (test_verifier.VerifierTests.test_absent_checker_is_environment_block) ... ok
+test_failing_test_is_failure_proof (test_verifier.VerifierTests.test_failing_test_is_failure_proof) ... ok
+test_pass_is_an_executable_test_result (test_verifier.VerifierTests.test_pass_is_an_executable_test_result) ... ok
+test_shell_not_allowed_and_strict_contract (test_verifier.VerifierTests.test_shell_not_allowed_and_strict_contract) ... ok
+test_timeout_is_unknown (test_verifier.VerifierTests.test_timeout_is_unknown) ... ok
+
+----------------------------------------------------------------------
+Ran 263 tests in 63.843s
+
+OK

@@ -1,0 +1,10 @@
+{
+  "objective": "分析多裝置庫存同步的衝突處理：離線修改、退貨、跨倉調撥與重試必須保持一致性。先產生具體故障案例，提出資料不變量與實作方案，不直接修改正式資料。",
+  "summary": "多裝置庫存同步，含離線修改與跨倉交易，需要跨系統一致性設計。",
+  "summary_approved": true,
+  "kind": "architecture",
+  "complexity": 4,
+  "risk": "high",
+  "needs_tools": true,
+  "data_policy": "metadata_only"
+}

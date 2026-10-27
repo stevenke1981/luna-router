@@ -1,0 +1,10 @@
+{
+  "state": "A public software issue is described as a straightforward documentation typo.",
+  "questions": {
+    "complexity": {
+      "type": "choice",
+      "instructions": "Classify the task using only the supplied public issue summary.",
+      "criteria": {"simple": "Single-file textual change", "complex": "Cross-module implementation work"}
+    }
+  }
+}

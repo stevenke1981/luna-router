@@ -1,0 +1,49 @@
+{
+  "source": "https://openrouter.ai/api/v1/models?output_modalities=decisions",
+  "fetched_at": "2026-10-26T06:42:50.022627Z",
+  "simulation": false,
+  "data": [
+    {
+      "id": "openai/gpt-6-luna-decisions",
+      "canonical_slug": "openai/gpt-6-luna-decisions-20261006",
+      "hugging_face_id": null,
+      "name": "OpenAI: GPT-6 Luna Decisions",
+      "created": 1791321558,
+      "description": "GPT-6 Luna Decisions is [GPT-6 Luna](/openai/gpt-6-luna) served through OpenAI's Decisions API. Instead of generating text, it reads the content passed as `state` (text, JSON, or images) and returns typed, probabilistic...",
+      "context_length": 1050000,
+      "architecture": {
+        "modality": "text+image->decisions",
+        "input_modalities": [
+          "text",
+          "image"
+        ],
+        "output_modalities": [
+          "decisions"
+        ],
+        "tokenizer": "GPT",
+        "instruct_type": null
+      },
+      "pricing": {
+        "prompt": "0.0000001",
+        "completion": "0",
+        "web_search": "0.01",
+        "input_cache_read": "0",
+        "input_cache_write": "0"
+      },
+      "top_provider": {
+        "context_length": 1050000,
+        "max_completion_tokens": 945000,
+        "is_moderated": true
+      },
+      "per_request_limits": null,
+      "supported_parameters": [],
+      "default_parameters": {},
+      "supported_voices": null,
+      "knowledge_cutoff": null,
+      "expiration_date": null,
+      "links": {
+        "details": "/api/v1/models/openai/gpt-6-luna-decisions-20261006/endpoints"
+      }
+    }
+  ]
+}
