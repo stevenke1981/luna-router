@@ -1,5 +1,6 @@
 # Native Luna medium coordinator routing (2026-10-28)
 
+- Native coordinator preferences: Terra for computer use; Sol for code and difficult problems.
 - The default native workflow now records a real Host Luna/medium coordinator selection directly, without calling OpenRouter Decisions.
 - Restrict native worker choices to GPT-6.1 Sol/Terra and low, medium, high, xhigh, max, intersected with live Codex model capabilities.
 - Persist coordinator agent identity and truthful Host-reported provenance; preserve atomic claims and independent verification.

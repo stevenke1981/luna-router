@@ -9,6 +9,12 @@ Locate the repository root by walking upward from this skill until `luna.py` and
 
 Use `gpt-6-luna` at `medium` as the native coordinator and decision maker. It directly chooses each worker from `gpt-6.1-sol` and `gpt-6.1-terra`, and one supported effort in `low`, `medium`, `high`, `xhigh`, `max`. Do not call OpenRouter Decisions for this workflow, invent a choice, or replace a blocked selection with heuristics. Do not ask the user to select models for you.
 
+## Worker selection preferences
+
+- Prefer `gpt-6.1-terra` for computer use: operating desktop apps, browsers, and graphical interfaces.
+- Prefer `gpt-6.1-sol` for code implementation, debugging, code analysis, and difficult reasoning or problem solving.
+- For mixed work, split UI operation and code/reasoning into separate tasks when useful; otherwise choose according to the main task. These are preferences, not permission to replace an unavailable model silently. The Luna coordinator still chooses the supported effort from low through max.
+
 ## Start and select
 
 Read `config.json` in the runtime root. `workflow.coordinator_model` / `coordinator_effort` default to `gpt-6-luna/medium`; the native decision contract requires this pair. If the Host is not already this coordinator, create a visible native agent using `fork_turns="none"`, `model="gpt-6-luna"`, `reasoning_effort="medium"`. Label this as a user-configured coordinator. Give it the user's objective, task context, available choices and this skill. Never recursively create another coordinator. Use the actual Host agent ID; do not fabricate an ID when the Host cannot supply one.

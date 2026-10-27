@@ -2,6 +2,12 @@
 
 The configured `gpt-6-luna/medium` native coordinator decomposes the task and directly selects worker model/effort. Worker models are exactly `gpt-6.1-sol` and `gpt-6.1-terra`; efforts are `low`, `medium`, `high`, `xhigh`, `max`. Live Codex model/list must advertise both the coordinator pair and the selected worker pair. The tool never silently changes a selection or manufactures a model response.
 
+## Worker selection preferences
+
+- Prefer `gpt-6.1-terra` for computer use: operating desktop apps, browsers, and graphical interfaces.
+- Prefer `gpt-6.1-sol` for code implementation, debugging, code analysis, and difficult reasoning or problem solving.
+- For mixed work, split UI operation and code/reasoning into separate tasks when useful; otherwise choose according to the main task. These are preferences, not permission to replace an unavailable model silently. The Luna coordinator still chooses the supported effort from low through max.
+
 ## Interfaces and provenance
 
 - `luna_workflow_start(project,tasks,config?)` creates a durable workflow. Tasks include objective (including acceptance criteria), kind, complexity, risk, metadata_only, explicit write_scopes, and depends_on. An empty write scope is read-only.

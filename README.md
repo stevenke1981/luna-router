@@ -4,6 +4,8 @@
 
 Worker 僅可選 `gpt-6.1-sol`、`gpt-6.1-terra`；effort 為 `low`、`medium`、`high`、`xhigh`、`max`，並以即時 Codex 能力查詢確認。此流程不呼叫 OpenRouter Decisions，也不需要 OpenRouter API key。
 
+模型偏好：computer use（桌面、瀏覽器與圖形介面操作）優先 `gpt-6.1-terra`；程式碼、除錯與困難問題優先 `gpt-6.1-sol`。混合工作可拆分派工，effort 仍由 Luna 選擇。
+
 `luna_decide` 接收原生 Luna 已做出的選擇與實際 coordinator agent ID；MCP 驗證並保存 `native_coordinator_host_reported` 證據，不假稱 MCP 自己呼叫模型。缺少選擇不會自動改走線上或本地規則。參閱 [完整 workflow](docs/WORKFLOW.md) 與 [專案技能](.agents/skills/luna-workflow/SKILL.md)。
 
 `.codex/config.toml` 讓新的受信任專案對話使用 `gpt-6-luna/medium`；`config.json` 的 workflow 設定預設整合角色與併行數。這些設定不切換目前對話模型。升級後重新啟動 Codex，讓新的 MCP schema 與全域技能載入。
