@@ -1,4 +1,4 @@
 # Defaults for fresh trusted Codex sessions in this repository.
 # This does not switch the model of an already-running conversation.
 model = "gpt-6-luna"
-model_reasoning_effort = "low"
+model_reasoning_effort = "medium"

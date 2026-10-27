@@ -1,111 +1,64 @@
 ---
 name: luna-workflow
-description: Coordinate multi-step project work through durable Luna Router jobs, live Luna Decisions worker routes, and visible native Codex agents; use for implementation tasks requiring decomposition, parallel work, integration, or verification.
+description: Let native gpt-6-luna medium directly choose Sol or Terra workers and their effort, dispatch visible agents, and independently verify project work.
 ---
 
-# Luna Router project workflow
+Locate the repository root by walking upward from this skill until `luna.py` and `config.json` are present. Keep project and request paths absolute.
 
-Use this skill for multi-step work in this repository. Locate the repository root by walking upward from this skill's directory until `luna.py` and `config.json` are present; do not assume the shell's current directory. Keep all project paths absolute.
+# Native Luna coordinator workflow
 
-## Start and route work
+Use `gpt-6-luna` at `medium` as the native coordinator and decision maker. It directly chooses each worker from `gpt-6.1-sol` and `gpt-6.1-terra`, and one supported effort in `low`, `medium`, `high`, `xhigh`, `max`. Do not call OpenRouter Decisions for this workflow, invent a choice, or replace a blocked selection with heuristics. Do not ask the user to select models for you.
 
-For multi-step goals, have the configured coordinator decompose the request into bounded tasks with explicit acceptance criteria, `depends_on`, and disjoint `write_scopes`. Keep independent branches running if one Decisions request is blocked. `metadata_only` is the default: Decisions receives fixed classification metadata, not task prose, source, paths, secrets, or unapproved summaries.
+## Start and select
 
-Put task-specific acceptance criteria in `objective`; there is no separate `acceptance` field.
+Read `config.json` in the runtime root. `workflow.coordinator_model` / `coordinator_effort` default to `gpt-6-luna/medium`; the native decision contract requires this pair. If the Host is not already this coordinator, create a visible native agent using `fork_turns="none"`, `model="gpt-6-luna"`, `reasoning_effort="medium"`. Label this as a user-configured coordinator. Give it the user's objective, task context, available choices and this skill. Never recursively create another coordinator. Use the actual Host agent ID; do not fabricate an ID when the Host cannot supply one.
 
-Read the `workflow` section of `<root>/config.json` for the coordinator and integrator settings. A fresh trusted repository session defaults to Luna through `.codex/config.toml`. If the current host is not already that coordinator, start a visible native coordinator using those configured `model`/`reasoning_effort` values and `fork_turns="none"`, with the user's goal and this skill path. Label that role `user_configured_coordinator`, not a Decisions-selected worker. Do not recursively start another coordinator from a coordinator.
+The coordinator decomposes the goal into tasks with explicit acceptance criteria, dependencies and disjoint write scopes, and returns its actual model/effort selection for each. A new trusted project session uses `.codex/config.toml`; this never changes an already-running Host's model.
 
-Use MCP `luna_workflow_start(project, tasks, config?)` or CLI `python <root>/luna.py workflow start --request <UTF-8 JSON file>`. Start input has:
+Call `luna_workflow_start` with:
 
 ```json
-{
-  "project": "E:\\absolute\\project",
-  "tasks": [
-    {
-      "id": "task-01",
-      "objective": "A bounded outcome",
-      "kind": "coding",
-      "complexity": 2,
-      "risk": "low",
-      "data_policy": "metadata_only",
-      "write_scopes": ["src/parser.py", "tests/test_parser.py"],
-      "depends_on": []
-    }
-  ],
-  "config": {
-    "coordinator_model": "gpt-6-luna",
-    "coordinator_effort": "low",
-    "integrator_model": "gpt-6.1-sol",
-    "integrator_effort": "high",
-    "max_parallel": 2
-  }
-}
+{"project":"E:\\project","tasks":[{"id":"task-01","objective":"Implement and verify the requested behavior","kind":"coding","complexity":2,"risk":"low","data_policy":"metadata_only","write_scopes":["src/parser.py","tests/test_parser.py"],"depends_on":[]}]}
 ```
 
-Omit config fields to use the configured defaults. Coordinator and integrator are fixed configured roles; Luna Decisions chooses every worker model and effort. Do not claim Decisions selected the coordinator or integrator. The default integrator is `gpt-6.1-sol` / `high`; the default coordinator is `gpt-6-luna` / `low`.
+The optional `config` contains coordinator/integrator model and effort plus `max_parallel` (default 2). Integration defaults to `gpt-6.1-sol/high` and is a configured role, not a coordinator-selected worker.
 
-For one routing question without execution, use MCP `luna_decide(job_id, task_id)` or CLI `workflow decide --request <UTF-8 JSON file>`. A valid result only records the route. It does not dispatch a worker. A worker may start only after an actual successful Decisions response.
+After receiving the native coordinator's real response, call `luna_decide` with its selection:
 
-## Dispatch visible native workers
+```json
+{"job_id":"<job-id>","task_id":"task-01","coordinator_agent_id":"<actual-native-coordinator-id>","selected_model":"gpt-6.1-sol","requested_effort":"high"}
+```
 
-After a task has a valid decision, call `luna_workflow_dispatch(job_id, task_id)` or CLI `workflow dispatch --request <UTF-8 JSON file>`. Use the returned dispatch descriptor exactly: call the host's native `spawn_agent` with `fork_turns="none"`, `model=<descriptor.model>`, and `reasoning_effort=<descriptor.effort>`. Pass only that task's objective, acceptance criteria, project binding, assigned write scopes, dependency results, and the instruction not to recursively invoke Luna Router.
+MCP validates live Codex model/effort availability and records this as `native_coordinator_host_reported`. It does not run inference or verify the model behind a Host agent ID. Do not describe this receipt as an OpenRouter response or fabricate API response IDs. Missing selections are errors; there is no implicit online fallback. Unavailable worker pairs stay blocked; continue independent work and ask the coordinator to reconsider only after resolving the cause.
 
-Record the host-returned native agent ID with `luna_workflow_event(job_id, task_id, action="started", agent_id=...)` before reporting progress or completion. Only dispatch independent tasks whose write scopes do not overlap, and honor `max_parallel`. If the native host tool is unavailable or its spawn result is uncertain, report that fact; never substitute a hidden CLI worker or replay an uncertain spawn.
+## Claim and execute
 
-An uncertain spawn remains `dispatching` with its durable claim. No `dispatch_unknown` action exists. Report uncertainty in the Host conversation and inspect native Host status; do not send `started` without an actual ID, and do not send `progress` before `started`.
+Call `luna_workflow_dispatch` with `job_id,task_id`. Use the returned descriptor exactly with native `spawn_agent`: `fork_turns="none"`, `model=<model>`, `reasoning_effort=<effort>`. Give the worker explicit file ownership and acceptance criteria, tell it others share the codebase, and prepend `[LUNA ROUTER WORKER]` so it does not recursively route. Do not silently substitute a CLI process for a visible agent.
 
-Native host tool activity is the source for visible agent actions. The workflow ledger reports host-provided summaries and evidence; it does not expose hidden reasoning or turn a background process into a native UI agent.
+Record the actual Host agent ID through `luna_workflow_event(action="started")` before progress/completion. Write scopes must remain disjoint and dependencies complete. A dispatch claim is single-use: if spawn outcome is uncertain, inspect Host state and report it rather than replaying the call. Agent IDs and role/model labels are Host-reported evidence, not provider attestation.
 
-## Report progress and results
+## Events and independent acceptance
 
-Use `luna_workflow_event` with `action="progress"` for concise observable actions and tool evidence, and `action="completed"` with the worker's outcome/evidence after the native agent turn has actually ended. Do not report a tool call before it runs, do not put model reasoning or speculative claims in progress summaries, and do not mark completion as acceptance.
+Use `luna_workflow_status(job_id,after?)` for durable snapshots. Event schemas are strict:
 
-Event input fields: `job_id`, optional `task_id`, `action`, optional `agent_id`, `summary`, `outcome`, and `evidence`. Supported actions are `started`, `progress`, `completed`, `integration_started`, and `integration_completed`. Keep evidence bounded and redact credentials. Use `luna_workflow_status(job_id, after?)` to retrieve the durable job snapshot and events after a sequence cursor.
-
-Each action accepts ONLY its listed fields; do not repeat `agent_id` on completion. `outcome` is an enum: `completed`, `failed`, `blocked`, or `unknown`. Put prose in `evidence`, never in `outcome`.
-
-| Action | Required fields besides `job_id` and `action` | Optional fields |
+| action | required besides job_id/action | optional |
 | --- | --- | --- |
-| `started` | `task_id`, `agent_id` | none |
-| `progress` | `task_id`, `summary` | none |
-| `completed` | `task_id`, `outcome` | `evidence` |
-| `integration_started` | `agent_id` | none |
-| `integration_completed` | `outcome` | `evidence` |
+| started | task_id, agent_id | none |
+| progress | task_id, summary | none |
+| completed | task_id, outcome | evidence |
+| integration_started | agent_id | none |
+| integration_completed | outcome | evidence |
 
-## Continue through routing failures
+`outcome` is one of `completed`, `failed`, `blocked`, `unknown`. Never use prose as the enum. Record only observed tool activity/results, not hidden reasoning. An uncertain spawn without an agent ID remains dispatching; do not record started/progress.
 
-Record the actual Decisions failure. The quick decision entrypoint retries HTTP 500/502/503/504 at most three attempts, with at most five seconds between attempts. Authentication, quota, ambiguous transport failures and malformed/invalid decisions are not automatically retried. Do not silently select a worker, rewrite a blocked decision as successful, or recursively call the router from a worker.
+After all worker turns complete, call `luna_workflow_integrate(job_id)`, spawn the returned configured integrator natively and record its start/completion. Integration may resolve actual defects without starting repeated review rounds.
 
-An API outage does not stop independent planning, repository inspection, coordinator-owned work, or integrator-owned work that can proceed from existing artifacts. A worker without a valid Decisions route remains undispatched. Continue independent tasks and record blocked tasks/dependents honestly. Never replay a spawn with an uncertain outcome.
+Finally call `luna_workflow_verify(job_id,check_file)` with an absolute UTF-8 JSON file such as `{"argv":["python","-X","utf8","-m","unittest","discover","-s","tests"],"timeout_seconds":300}`. The verifier executes without a shell in the project directory and persists actual exit status and output hash. Worker completion, integration prose and raw PASS flags are not independent acceptance. Never replay an uncertain verification; diagnose it first.
 
-## Integrate and verify
+## CLI and compatibility
 
-When all worker turns have completed, call `luna_workflow_integrate(job_id)` (CLI `workflow integrate`) to claim final integration. Spawn the returned configured integrator descriptor, default `gpt-6.1-sol` / `high`, and record `integration_started` and `integration_completed` events with its native ID and evidence. Integration is not independent verification.
+The same JSON arguments work with `workflow start|decide|dispatch|event|status|integrate|verify --request <absolute UTF-8 JSON file>`. Use the installed absolute entrypoint if MCP exposes stale schemas or is unavailable. Restart the Host to load new MCP schemas; do not claim an existing tool list updated itself.
 
-Verify through MCP `luna_workflow_verify(job_id, check_file)` or CLI `workflow verify --request <UTF-8 JSON file>`. `check_file` selects the local verifier/check definition; the Host runs it and records actual output. Never submit a raw PASS flag or claim a check ran without host evidence. The workflow is complete only when required task results, integration, and independent verification all have successful evidence. Otherwise report partial/blocked status and remaining acceptance criteria.
+Legacy `luna_decide_online` / CLI `workflow decide-online`, `luna_run`, `luna_plan` and `probe` still use OpenRouter when explicitly invoked. They are separate opt-in compatibility paths, not the direct native coordinator workflow. No API key is needed for native selection registration. Codex itself still uses the user's OpenAI connection. Legacy external decisions retain metadata-only boundaries and bounded transient retries; credentials must never be printed.
 
-The check file is UTF-8 JSON, for example `{"argv":["python","-m","unittest"],"timeout_seconds":300}`; select a command that actually tests the task. It runs without a shell in the project directory. Stored evidence is the exit code and bounded output hash, not raw output. A verification claim prevents simultaneous or uncertain replay. Infrastructure failures are saved without acceptance; retry only after diagnosing the failure. A completed job cannot run its verifier again.
-
-## MCP and CLI request convention
-
-MCP tools are `luna_workflow_start(project, tasks, config?)`, `luna_decide(job_id, task_id)`, `luna_workflow_dispatch(job_id, task_id)`, `luna_workflow_event(job_id, task_id?, action, agent_id?, summary?, outcome?, evidence?)`, `luna_workflow_status(job_id, after?)`, `luna_workflow_integrate(job_id)`, and `luna_workflow_verify(job_id, check_file)`. The equivalent CLI actions are `workflow start|decide|dispatch|event|status|integrate|verify --request <UTF-8 JSON file>`.
-
-CLI request files contain exactly the same JSON object as MCP arguments. Use absolute request-file and `check_file` paths, since relative paths resolve against the service process working directory, not necessarily the project. Minimal examples after start:
-
-```json
-{"job_id":"<job-id>","task_id":"task-01"}
-```
-
-Use that object for `decide` and `dispatch`. For the following operations:
-
-```text
-event:     {"job_id":"<job-id>","task_id":"task-01","action":"started","agent_id":"<native-id>"}
-event:     {"job_id":"<job-id>","task_id":"task-01","action":"completed","outcome":"completed","evidence":"Observed result"}
-integrate: {"job_id":"<job-id>"}
-event:     {"job_id":"<job-id>","action":"integration_started","agent_id":"<integrator-id>"}
-event:     {"job_id":"<job-id>","action":"integration_completed","outcome":"completed","evidence":"Observed integration"}
-verify:    {"job_id":"<job-id>","check_file":"E:\\project\\checks.json"}
-status:    {"job_id":"<job-id>","after":0}
-```
-
-The host's native agent interface controls agent creation and UI visibility. Luna Router does not switch the current conversation's model. Report separately: Decisions response, native dispatch/ID, worker turn completion, integration, and independent verification.
+Report the native coordinator's selected model/effort and Host ID, worker dispatch/completion, integration and actual verification separately. A worker beginning `[LUNA ROUTER WORKER]` or running with `LUNA_ROUTER_WORKER=1` performs its assignment directly and must not call the router.

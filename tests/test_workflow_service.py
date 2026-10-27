@@ -47,7 +47,7 @@ class WorkflowServiceTests(unittest.TestCase):
         with patch.object(service, 'resolve_key', return_value=('fixture', 'process')), \
              patch.object(service.codex_backend, 'discover', return_value=runtime()), \
              patch.object(router, 'make_plan', return_value=plan()):
-            return self.call('decide', job_id=job, task_id='a')
+            return self.call('decide-online', job_id=job, task_id='a')
 
     def test_decision_returns_without_starting_a_worker(self):
         job = self.start()
@@ -64,7 +64,7 @@ class WorkflowServiceTests(unittest.TestCase):
     def test_missing_key_keeps_task_retryable_without_worker(self):
         job = self.start()
         with patch.object(service, 'resolve_key', return_value=('', 'missing')):
-            result = self.call('decide', job_id=job, task_id='a')
+            result = self.call('decide-online', job_id=job, task_id='a')
         self.assertEqual(result['continuation'], 'continue_independent_work')
         self.assertEqual(self.call('status', job_id=job)['tasks'][0]['status'], 'routing_blocked')
         self.assertTrue(self.route(job)['dispatch_ready'])
@@ -74,7 +74,7 @@ class WorkflowServiceTests(unittest.TestCase):
         with patch.object(service, 'resolve_key', return_value=('fixture', 'process')), \
              patch.object(service.codex_backend, 'discover', return_value=runtime()), \
              patch.object(router, 'make_plan', return_value={'status': 'planned'}):
-            result = self.call('decide', job_id=job, task_id='a')
+            result = self.call('decide-online', job_id=job, task_id='a')
         self.assertFalse(result['dispatch_ready'])
         self.assertEqual(self.call('status', job_id=job)['tasks'][0]['status'], 'routing_blocked')
 
@@ -85,7 +85,7 @@ class WorkflowServiceTests(unittest.TestCase):
         with patch.object(service, 'resolve_key', return_value=('fixture', 'process')), \
              patch.object(service.codex_backend, 'discover', return_value=runtime()), \
              patch.object(router, 'make_plan', return_value=response):
-            result = self.call('decide', job_id=job, task_id='a')
+            result = self.call('decide-online', job_id=job, task_id='a')
         self.assertNotIn('private_extra', result['plan'])
         self.assertEqual(result['plan'], self.call('status', job_id=job)['tasks'][0]['plan'])
 

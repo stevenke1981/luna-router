@@ -1,3 +1,10 @@
+# Native Luna medium coordinator routing (2026-10-28)
+
+- The default native workflow now records a real Host Luna/medium coordinator selection directly, without calling OpenRouter Decisions.
+- Restrict native worker choices to GPT-6.1 Sol/Terra and low, medium, high, xhigh, max, intersected with live Codex model capabilities.
+- Persist coordinator agent identity and truthful Host-reported provenance; preserve atomic claims and independent verification.
+- Move API-based decision registration to explicit legacy decide-online; update project/global skills and fresh-session defaults.
+
 # v2.7.0 patch — Instant Luna dispatch（2026-10-27）
 
 - Live fix: OpenRouter returns the dated snapshot `openai/gpt-6-luna-decisions-20261006`; the exact-id check rejected it as `decision_model_mismatch`, blocking every live run. Responses now accept the configured id or `<id>-YYYYMMDD`.

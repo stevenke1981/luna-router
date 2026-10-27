@@ -20,7 +20,8 @@ from workflow import WorkflowStore
 
 FIELDS = {
     'start': ({'project', 'tasks'}, {'config'}),
-    'decide': ({'job_id', 'task_id'}, set()),
+    'decide': ({'job_id', 'task_id', 'coordinator_agent_id', 'selected_model', 'requested_effort'}, set()),
+    'decide-online': ({'job_id', 'task_id'}, set()),
     'dispatch': ({'job_id', 'task_id'}, set()),
     'event': ({'job_id', 'action'}, {'task_id', 'agent_id', 'summary', 'outcome', 'evidence'}),
     'status': ({'job_id'}, {'after'}),
@@ -41,7 +42,7 @@ def _request(action, args):
 
 def _native_capability(model, effort):
     runtime = codex_backend.discover()
-    if runtime.get('simulation') is not False or runtime.get('auth_mode') != 'chatgpt':
+    if runtime.get('source') != 'codex.model/list' or runtime.get('simulation') is not False or runtime.get('auth_mode') != 'chatgpt':
         raise ValueError('verified_chatgpt_capabilities_required')
     available = next((m for m in runtime.get('models', []) if m.get('id') == model), None)
     if available is None or effort not in available.get('efforts', []):
@@ -49,7 +50,7 @@ def _native_capability(model, effort):
     return runtime
 
 
-def decide(store, job_id, task_id, config, state_dir):
+def decide_online(store, job_id, task_id, config, state_dir):
     snapshot = store.begin_decision(job_id, task_id)
     task = next(t for t in snapshot['tasks'] if t['id'] == task_id)
     plan = {'status': 'blocked', 'stage': 'decision', 'reason': 'decision_not_completed',
@@ -108,6 +109,32 @@ def decide(store, job_id, task_id, config, state_dir):
             'continuation': 'dispatch_native_agent' if plan.get('status') == 'planned' else 'continue_independent_work'}
 
 
+def decide_native(store, args):
+    """Record a host-reported coordinator choice; this does not run inference."""
+    from workflow import _plan
+    model, effort = args['selected_model'], args['requested_effort']
+    if model not in ('gpt-6.1-sol', 'gpt-6.1-terra') or effort not in ('low', 'medium', 'high', 'xhigh', 'max'):
+        raise ValueError('unsupported_native_worker_model_or_effort')
+    snapshot = store.snapshot(args['job_id'])
+    settings = snapshot['job']['config']
+    if (settings['coordinator_model'], settings['coordinator_effort']) != ('gpt-6-luna', 'medium'):
+        raise ValueError('native_coordinator_configuration_invalid')
+    plan = _plan({'status': 'planned', 'backend': 'codex', 'simulation': False,
+                  'decision_source': 'native_coordinator_host_reported',
+                  'selected_model': model, 'requested_effort': effort,
+                  'coordinator': {'agent_id': args['coordinator_agent_id'], 'model': 'gpt-6-luna',
+                                  'effort': 'medium', 'provenance': 'host_reported'}})
+    runtime = _native_capability('gpt-6-luna', 'medium')
+    available = next((m for m in runtime.get('models', []) if m.get('id') == model), None)
+    if available is None or effort not in available.get('efforts', []):
+        raise ValueError('configured_native_model_or_effort_unavailable')
+    store.begin_decision(args['job_id'], args['task_id'])
+    saved = store.record_decision(args['job_id'], args['task_id'], plan)
+    plan = next(t['plan'] for t in saved['tasks'] if t['id'] == args['task_id'])
+    return {'job_id': args['job_id'], 'task_id': args['task_id'], 'plan': plan,
+            'dispatch_ready': True, 'worker_started': False, 'continuation': 'dispatch_native_agent'}
+
+
 def _event(store, args):
     action, job = args['action'], args['job_id']
     task = args.get('task_id')
@@ -145,7 +172,9 @@ def handle(action, args, *, state_dir=None, config=None):
         settings = {**config.get('workflow', {}), **args.get('config', {})}
         return store.create(args['project'], args['tasks'], settings)
     if action == 'decide':
-        return decide(store, args['job_id'], args['task_id'], config, state_dir)
+        return decide_native(store, args)
+    if action == 'decide-online':
+        return decide_online(store, args['job_id'], args['task_id'], config, state_dir)
     if action == 'dispatch':
         descriptor = store.claim_dispatch(args['job_id'], args['task_id'])
         descriptor['host_action'] = 'spawn_agent'

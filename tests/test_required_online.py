@@ -315,7 +315,8 @@ class FullInstallerTests(unittest.TestCase):
         self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
         self.root=Path(self.temp.name);self.source=self.root/'source'
         def ignore_fixture_tree(directory, names):
-            ignored = set(shutil.ignore_patterns('.state', '.git', '__pycache__', '*.pyc')(directory, names))
+            ignored = set(shutil.ignore_patterns('.state', '.git', '__pycache__', '*.pyc',
+                                                '.tmp', '.venv', '.env', '.env.*')(directory, names))
             # TEMP may live anywhere under ROOT. Exclude the ancestor containing
             # this fixture, rather than relying on a particular temp folder name.
             for name in names:

@@ -20,6 +20,14 @@ def plan():
                                  "selected_id": "gpt-6.1-sol", "effort": "medium"}}
 
 
+def native_plan(model="gpt-6.1-sol", effort="medium"):
+    return {"status": "planned", "backend": "codex", "simulation": False,
+            "decision_source": "native_coordinator_host_reported", "selected_model": model,
+            "requested_effort": effort,
+            "coordinator": {"agent_id": "native-coordinator-fixture", "model": "gpt-6-luna",
+                            "effort": "medium", "provenance": "host_reported"}}
+
+
 def task(identifier="a", scopes=None, deps=None):
     return {"id": identifier, "objective": "Implement the bounded fixture task",
             "kind": "coding", "complexity": 2, "risk": "low",
@@ -69,7 +77,7 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual(data["job"]["id"], job)
         self.assertEqual(data["job"]["project"], str(self.project.resolve()))
         self.assertEqual(data["job"]["config"]["coordinator_model"], "gpt-6-luna")
-        self.assertEqual(data["job"]["config"]["coordinator_effort"], "low")
+        self.assertEqual(data["job"]["config"]["coordinator_effort"], "medium")
         self.assertEqual(data["job"]["config"]["integrator_model"], "gpt-6.1-sol")
         self.assertEqual(data["job"]["config"]["integrator_effort"], "high")
         self.assertEqual(data["job"]["config"]["max_parallel"], 2)
@@ -139,6 +147,97 @@ class WorkflowTests(unittest.TestCase):
         self.assertNotIn("secretfixture", json.dumps(state))
         self.store.begin_decision(job, "a")
         self.assertEqual(self.store.record_decision(job, "a", plan())["tasks"][0]["status"], "ready")
+
+    def test_native_coordinator_model_and_effort_allowlist(self):
+        for model in ("gpt-6.1-sol", "gpt-6.1-terra"):
+            for effort in ("low", "medium", "high", "xhigh", "max"):
+                with self.subTest(model=model, effort=effort):
+                    job = self.create()
+                    self.store.begin_decision(job, "a")
+                    expected = native_plan(model, effort)
+                    state = self.store.record_decision(job, "a", {**expected, "raw_objective": "never persist"})
+                    self.assertEqual(state["tasks"][0]["plan"], expected)
+                    self.assertEqual(state["tasks"][0]["status"], "ready")
+                    descriptor = self.store.claim_dispatch(job, "a")
+                    self.assertEqual((descriptor["model"], descriptor["effort"]), (model, effort))
+                    self.assertEqual(descriptor["provenance"], "native_coordinator_host_reported")
+                    self.assertEqual(descriptor["coordinator"], expected["coordinator"])
+                    state = WorkflowStore(self.state).snapshot(job)
+                    self.assertEqual(state["events"][-1]["data"]["provenance"], descriptor["provenance"])
+                    self.assertEqual(state["events"][-1]["data"]["coordinator"], expected["coordinator"])
+                    self.assertNotIn("never persist", json.dumps(state))
+                    for name in ("decision_model", "decision_metrics", "decision_call_attempted",
+                                 "decision_response_received", "decision_model_called", "decision_response_id"):
+                        self.assertNotIn(name, state["tasks"][0]["plan"])
+
+    def test_native_coordinator_invalid_plan_does_not_change_decision(self):
+        job = self.create()
+        initial = self.store.begin_decision(job, "a")
+        patches = [{"selected_model": value} for value in
+                   ("gpt-6-luna", "gpt-6.1-sol-latest", "gpt-6-astra", "openai/gpt-6.1-sol", "", None, [])]
+        patches += [{"requested_effort": value} for value in ("none", "ultra", "arbitrary", "", None, [], False)]
+        patches += [{"simulation": True}, {"simulation": None}, {"backend": "openrouter"},
+                    {"decision_source": "native_coordinator"}, {"coordinator": None}]
+        for key, value in (("model", "gpt-6.1-sol"), ("effort", "low"), ("effort", "ultra"),
+                           ("provenance", "provider_verified"), ("provenance", None)):
+            patches.append({"coordinator": {**native_plan()["coordinator"], key: value}})
+        for identifier in (None, "", " ", "native\ncoordinator", "a\x00b", "a" * 257,
+                           "sk-abcdefghijklmnop", "api_key=secretfixture", 123, []):
+            patches.append({"coordinator": {**native_plan()["coordinator"], "agent_id": identifier}})
+        patches.append({"coordinator": {**native_plan()["coordinator"], "provider_response_id": "fabricated"}})
+        for field, value in (("decision_model", "openai/gpt-6-luna-decisions"), ("decision_metrics", {}),
+                             ("decision_call_attempted", False), ("decision_response_received", True),
+                             ("decision_model_called", True), ("decision_response_id", "fabricated")):
+            patches.append({field: value})
+        for patch in patches:
+            with self.subTest(patch=patch), self.assertRaises(ValueError):
+                self.store.record_decision(job, "a", {**native_plan(), **patch})
+            self.assertEqual(self.store.snapshot(job), initial)
+
+    def test_native_coordinator_matches_saved_configuration(self):
+        for config in ({"coordinator_effort": "low"}, {"coordinator_model": "gpt-6.1-sol"}):
+            with self.subTest(config=config):
+                job = self.create(config=config)
+                initial = self.store.begin_decision(job, "a")
+                with self.assertRaisesRegex(ValueError, "configured coordinator"):
+                    self.store.record_decision(job, "a", native_plan())
+                self.assertEqual(self.store.snapshot(job), initial)
+                # Existing jobs retain their configured role and the legacy API path.
+                self.assertEqual(self.store.record_decision(job, "a", plan())["tasks"][0]["status"], "ready")
+
+    def test_native_dispatch_claim_atomic_restart_and_verification_separate(self):
+        job = self.create()
+        self.store.begin_decision(job, "a")
+        self.store.record_decision(job, "a", native_plan("gpt-6.1-terra", "max"))
+        with self.assertRaises(WorkflowConflict):
+            self.store.record_decision(job, "a", native_plan())
+        barrier = threading.Barrier(2)
+        def claim(_):
+            store = WorkflowStore(self.state)
+            barrier.wait()
+            try:
+                return store.claim_dispatch(job, "a")
+            except WorkflowConflict:
+                return None
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            claims = list(pool.map(claim, range(2)))
+        self.assertEqual(sum(claim is not None for claim in claims), 1)
+        restarted = WorkflowStore(self.state)
+        with self.assertRaises(WorkflowConflict):
+            restarted.claim_dispatch(job, "a")
+        with self.assertRaises(WorkflowConflict):
+            restarted.begin_decision(job, "a")
+        with self.assertRaises(WorkflowConflict):
+            restarted.record_decision(job, "a", native_plan())
+        restarted.started(job, "a", "native-terra-fixture")
+        restarted.complete(job, "a", "completed", "Worker completed its turn")
+        restarted.claim_integration(job)
+        restarted.integration_started(job, "native-integrator-fixture")
+        state = restarted.integration_complete(job, "completed")
+        self.assertEqual(state["job"]["status"], "awaiting_verification")
+        self.assertIsNone(state["job"]["verification"])
+        restarted.claim_verification(job)
+        self.assertEqual(restarted.verify(job, verification())["job"]["status"], "completed")
 
     def test_dispatch_claim_atomic_duplicate_and_restart_no_replay(self):
         job = self.create()

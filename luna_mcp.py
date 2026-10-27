@@ -93,7 +93,7 @@ def dispatch(message):
             result={'protocolVersion':version if version in supported else '2025-11-25',
                     'capabilities':{'tools':{}},
                     'serverInfo':{'name':'luna-router','version':router.VERSION},
-                    'instructions':'For visible multi-agent work use luna_workflow_start, luna_decide, then native host spawn_agent with the selected model/effort; record events and use configurable final integration. A blocked route does not stop independent work. luna_run remains legacy synchronous execution. Never claim MCP switched this conversation model.'}
+                    'instructions':'Use a native gpt-6-luna/medium coordinator to directly select gpt-6.1-sol or gpt-6.1-terra with low through max effort. Start a workflow and register its actual selection and agent ID using luna_decide, then claim dispatch and use native spawn_agent. MCP records Host-reported choices, not model inference. Record events, integrate and independently verify. luna_decide_online and luna_run are explicit legacy OpenRouter paths. Never claim MCP switched this conversation model.'}
         elif method=='ping':
             result={}
         elif method=='tools/list':

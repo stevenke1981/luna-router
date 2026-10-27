@@ -25,7 +25,11 @@ TOOLS = [
                'max_parallel': {'type': 'integer', 'minimum': 1, 'maximum': 16}},
                'additionalProperties': False}}, ['project', 'tasks']),
     _tool('luna_decide', 'decide',
-          'Quick real Luna Decisions model/effort selection for one workflow task. No worker is started. Transient HTTP errors have bounded retries; continue independent work when blocked.',
+          'Record the native coordinator host-reported selection after checking live Codex capabilities. Does not run inference or attest agent identity; no worker is started.',
+          {**IDENTITY, 'coordinator_agent_id': STRING, 'selected_model': STRING, 'requested_effort': STRING},
+          ['job_id', 'task_id', 'coordinator_agent_id', 'selected_model', 'requested_effort']),
+    _tool('luna_decide_online', 'decide-online',
+          'Explicit legacy OpenRouter Luna Decisions selection. No worker is started.',
           IDENTITY, ['job_id', 'task_id']),
     _tool('luna_workflow_dispatch', 'dispatch',
           'Atomically claim a ready task and return model/effort/ownership for native spawn_agent. Caller must spawn visibly, then record agent ID. Never replay an uncertain claim.',
@@ -44,7 +48,7 @@ TOOLS = [
           {'job_id': STRING, 'check_file': STRING}, ['job_id', 'check_file']),
 ]
 ACTIONS = dict(zip((tool['name'] for tool in TOOLS),
-                   ('start', 'decide', 'dispatch', 'event', 'status', 'integrate', 'verify')))
+                   ('start', 'decide', 'decide-online', 'dispatch', 'event', 'status', 'integrate', 'verify')))
 
 
 def invoke(name, arguments):

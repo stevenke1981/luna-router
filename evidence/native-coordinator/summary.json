@@ -1,0 +1,67 @@
+{
+  "date": "2026-10-28",
+  "coordinator": {
+    "agent_id": "/root/luna_coordinator",
+    "model": "gpt-6-luna",
+    "effort": "medium",
+    "provenance": "host_reported"
+  },
+  "implementation_workers": [
+    {
+      "agent_id": "/root/native_route_store",
+      "model": "gpt-6.1-sol",
+      "effort": "high"
+    },
+    {
+      "agent_id": "/root/native_route_service",
+      "model": "gpt-6.1-terra",
+      "effort": "high"
+    }
+  ],
+  "implementation_dispatch_note": "Bootstrap selections observed directly from native coordinator before native registration API existed; not retroactively recorded as workflow claims.",
+  "live_smoke": {
+    "job_id": "88cbb0e096254fb4a77c5ee9610bbdbd",
+    "status": "completed",
+    "decision": {
+      "status": "planned",
+      "backend": "codex",
+      "simulation": false,
+      "decision_source": "native_coordinator_host_reported",
+      "selected_model": "gpt-6.1-sol",
+      "requested_effort": "low",
+      "coordinator": {
+        "agent_id": "/root/luna_coordinator",
+        "model": "gpt-6-luna",
+        "effort": "medium",
+        "provenance": "host_reported"
+      }
+    },
+    "worker_agent_id": "/root/native_smoke_worker",
+    "integrator": {
+      "status": "completed",
+      "agent_id": "/root/native_smoke_integrator",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "provenance": "user_configured_integrator",
+      "outcome": "completed",
+      "evidence": "Observed /root/native_smoke_integrator completion: output fields exactly nonce/sum; nonce matches and sum 34. No changes needed. Host acceptance pending."
+    },
+    "verification": {
+      "outcome": "passed",
+      "evidence_kind": "verifier",
+      "exit_code": 0,
+      "check_id": "03abee94370144918a3291b0dca32225d815e96a6d38d337095d85308e3192af",
+      "evidence_sha256": "4c873aa1d70659de2f590c6b15e535cadf93af6fd52edf5e37369e3c572090ea"
+    }
+  },
+  "tests": {
+    "command": "python -X utf8 -m unittest discover -s tests",
+    "total": 330,
+    "passed": 313,
+    "skipped": 17,
+    "failed": 0,
+    "seconds": 18.644
+  },
+  "wire_model_attestation": "not supplied; model settings and identities are Host-reported",
+  "openrouter_used_for_native_workflow": false
+}

@@ -173,7 +173,7 @@
   },
   "workflow": {
     "coordinator_model": "gpt-6-luna",
-    "coordinator_effort": "low",
+    "coordinator_effort": "medium",
     "integrator_model": "gpt-6.1-sol",
     "integrator_effort": "high",
     "max_parallel": 2

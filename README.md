@@ -1,24 +1,20 @@
-# Luna Router
+# Luna Router — 直接由 GPT-6 Luna medium 決策
 
-版本：v2.7.0（可見多 Agent workflow 與 live 驗收）
+預設流程：`gpt-6-luna/medium` 原生協調代理拆分任務並直接選擇 worker → Host 記錄選擇並啟動可見 agents → `gpt-6.1-sol/high` 整合 → 獨立驗收。
 
-預設協作方式：使用者提出目標 → Luna 協調拆分 → Luna Decisions 為每項任務選模型與 effort → Host 啟動可見原生 agents → Sol 整合 → 獨立驗收。
+Worker 僅可選 `gpt-6.1-sol`、`gpt-6.1-terra`；effort 為 `low`、`medium`、`high`、`xhigh`、`max`，並以即時 Codex 能力查詢確認。此流程不呼叫 OpenRouter Decisions，也不需要 OpenRouter API key。
 
-專案已提供 [decision workflow skill](.agents/skills/luna-workflow/SKILL.md)，由 [AGENTS.md](AGENTS.md) 指示 agents 使用；完整請求範例見 [工作流程文件](docs/WORKFLOW.md)。`.codex/config.toml` 設定新的受信任專案工作階段以 `gpt-6-luna/low` 啟動；`config.json` 的 `workflow` 設定協調模型、整合模型（預設 `gpt-6.1-sol/high`）及 `max_parallel`（預設 2）。這些設定不會切換已開啟對話的模型。
+`luna_decide` 接收原生 Luna 已做出的選擇與實際 coordinator agent ID；MCP 驗證並保存 `native_coordinator_host_reported` 證據，不假稱 MCP 自己呼叫模型。缺少選擇不會自動改走線上或本地規則。參閱 [完整 workflow](docs/WORKFLOW.md) 與 [專案技能](.agents/skills/luna-workflow/SKILL.md)。
 
-`luna_decide` 只取得真實決策並立即回傳，派工由 `luna_workflow_dispatch` 與 Host 原生 `spawn_agent` 分開處理。可在 Host 看到 agent 工具動作，並透過 `luna_workflow_status` 查閱持久化事件。MCP 本身不建立原生 UI agent；缺少原生代理工具的 Host 必須如實回報。
+`.codex/config.toml` 讓新的受信任專案對話使用 `gpt-6-luna/medium`；`config.json` 的 workflow 設定預設整合角色與併行數。這些設定不切換目前對話模型。升級後重新啟動 Codex，讓新的 MCP schema 與全域技能載入。
 
-舊 `luna_run` 是同步入口，會等待整個 worker 回合完成，因此可能耗時數分鐘；多步驟工作改用 workflow，避免把完整執行時間誤認為路由時間。單一決策失敗只阻塞相關任務，獨立工作繼續；HTTP 500/502/503/504 最多嘗試三次，認證、配額、結果不明的傳輸及無效決策不自動重試。沒有成功決策就不派送該 worker，也不重播結果不明的派工或驗證命令。
+## 安裝與驗證
 
-## 相容 CLI 的實際預設
+使用 `install-luna-router.ps1` 安裝 runtime、全域 skill 與 CLI，`-RegisterMcp` 可登記 MCP。執行 `python -X utf8 -m unittest discover -s tests` 與 `python verify-package.py` 驗證套件。測試中的假模型不是 live 驗證；實際交付記錄見 result08.md。
 
-- `luna.py` 未指定子命令時執行 `run`；不是 `plan`。
-- `run`／`plan` 預設 `luna`；`auto` 也要求真實 Luna 決策成功。只有明確 `--offline`／`--routing local` 才走本地規則。
-- 沒有 Key、連線失敗、HTTP 錯誤或回應不合法時，回報該決策錯誤，獨立工作仍可繼續。低信心的有效決策仍直接派工，記錄 `luna_low_certainty_accepted`。**不會退回 local_policy 假裝成功。**
-- 只有一個候選或指定 worker 時，仍呼叫 Luna 決定推理程度；不因這些條件跳過模型。
-- 每個新的 strict job 發出新的決策請求，不以舊快取冒充當次呼叫。既有、具 Luna 來源證據的重試工作不會每次重叫決策模型。
-- 舊設定的 `default_mode: local` 不再能隱性覆寫上述 CLI 預設；明確禁止外送的 `no_external` 仍優先保護，與線上模式衝突就報錯。
-- OpenRouter 本地美元門檻維持移除，消費上限交由 OpenRouter；免費 worker 零價檢查與請求次數保護保留。
+## 舊線上入口（僅明確選用時使用）
+
+下方為保留的 v2.7 線上命令說明。`luna_run`、`luna_plan`、`probe`、`luna_decide_online`／`workflow decide-online` 仍使用 OpenRouter；其 required-online 與付費描述僅適用這些舊入口，不適用上方原生 workflow。
 
 ## Windows 安裝（Python 3.11 以上）
 

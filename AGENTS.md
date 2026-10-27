@@ -1,13 +1,12 @@
-# Luna Router v2.7.0
+# Luna Router native coordinator workflow
 
-- 開始前讀取並使用專案技能 `.agents/skills/luna-workflow/SKILL.md`；內含完整 MCP／CLI 請求、原生 agent 派送、事件、整合及驗收操作。設定角色與併行數讀取 `config.json` 的 `workflow` 區段。
-
-- 優先使用可見的原生多代理流程：Luna 協調、Decisions 逐項選擇 worker 模型與 effort、原生 subagents 派工，最後由可設定的 gpt-6.1-sol/high 整合。同步 luna_run 保留為相容入口，不再強制所有工作先等完整 worker 回合。
-- auto/luna 都需要真實 Luna Decisions 成功；未明確要求離線，不可插入 live:false、--offline 或 --routing local。
-- OpenRouter API／能力失敗要記錄該決策的 blocked 與實際原因，但不停止不依賴該決策的規格、診斷、修復與測試。暫時性決策服務失敗只做有上限的重試；認證、額度、無效回應不盲試，不重播已啟動或結果不明的 worker，不退回 local_policy 冒充成功。
-- Key 只讀取環境；Windows 可唯讀讀取 User/System environment，不得列印金鑰值。
-- 預設 metadata_only。不要傳專案原文、路徑、私鑰或未核准摘要到 Decisions API。
-- 兩次經驗證失敗才升原生 effort，歸零計數；原生上限仍失敗兩次才升模型。不把網路、認證、額度當解題失敗。
-- LUNA_ROUTER_WORKER=1 時不得遞迴呼叫路由器；直接執行已交派的工作。
-- 交付要分開報決策回應、worker 啟動、回合完成、獨立驗收。假 HTTP/Codex 測試不是 live 驗收。
-- v2.4 即時多回合切換仍未整合；不能宣稱已更換目前 ChatGPT 對話模型。
+- Read `.agents/skills/luna-workflow/SKILL.md` before project work. The default coordinator is `gpt-6-luna/medium`; it directly selects each worker's model and effort.
+- Worker choices are exactly `gpt-6.1-sol` or `gpt-6.1-terra`, with `low`, `medium`, `high`, `xhigh`, or `max`, intersected with live Codex capabilities. Do not silently replace an unavailable choice.
+- Use a visible native coordinator when the Host is not already Luna/medium. Do not recursively create coordinators. Preserve its real Host agent ID and actual selection.
+- Start a workflow, record the coordinator's selection through `luna_decide`, claim dispatch, then use native `spawn_agent` with the returned model/effort and record its real ID. MCP records Host evidence; it does not run a decision model or attest its wire identity.
+- This default workflow does not use OpenRouter, an API key, local-policy heuristics, or the old Decisions API. `luna_decide_online` / CLI `decide-online` and synchronous `luna_run` are explicit legacy compatibility paths, not substitutes for direct coordinator selection.
+- Configurable integration defaults to `gpt-6.1-sol/high`. Execute independent acceptance through `luna_workflow_verify`; a finished worker or integrator is not acceptance.
+- Keep write scopes disjoint. Do not replay uncertain claims, spawns, or verifier executions. Continue independent work if one route is blocked; never invent a successful route.
+- Tasks starting with `[LUNA ROUTER WORKER]` or `LUNA_ROUTER_WORKER=1` execute assigned work directly and never recursively call the router.
+- Never print credentials. Legacy OpenRouter calls require the existing data boundary; metadata_only sends fixed classifications only.
+- Report native coordinator selection, dispatch/agent IDs, completion, integration and independent checks separately. Configuration affects newly launched roles, not the current conversation model.

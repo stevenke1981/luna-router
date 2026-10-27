@@ -20,12 +20,15 @@ from policy import EFFORTS, normalize_task
 
 
 DEFAULT_CONFIG = {
-    "coordinator_model": "gpt-6-luna", "coordinator_effort": "low",
+    "coordinator_model": "gpt-6-luna", "coordinator_effort": "medium",
     "integrator_model": "gpt-6.1-sol", "integrator_effort": "high",
     "max_parallel": 2,
 }
 MAX_PROGRESS_EVENTS = 200
 MAX_EVENT_TEXT = 2048
+NATIVE_DECISION_SOURCE = "native_coordinator_host_reported"
+NATIVE_WORKER_MODELS = ("gpt-6.1-sol", "gpt-6.1-terra")
+NATIVE_WORKER_EFFORTS = ("low", "medium", "high", "xhigh", "max")
 _IDENTIFIER = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{0,63}\Z")
 _MODEL = re.compile(r"[A-Za-z0-9][A-Za-z0-9./:_-]{0,127}\Z")
 _HASH = re.compile(r"[0-9a-fA-F]{64}\Z")
@@ -167,11 +170,40 @@ def _tasks(project, raw):
     return result
 
 
-def _plan(raw):
+def _native_plan(raw, config=None):
+    """Validate host-reported routing without fabricating API call evidence."""
+    if (raw.get("status") != "planned" or raw.get("backend") != "codex"
+            or raw.get("simulation") is not False
+            or raw.get("selected_model") not in NATIVE_WORKER_MODELS
+            or raw.get("requested_effort") not in NATIVE_WORKER_EFFORTS):
+        raise ValueError("unsupported native coordinator worker model or reasoning effort")
+    if any(isinstance(key, str) and key.startswith("decision_") and key != "decision_source"
+           for key in raw):
+        raise ValueError("native coordinator plans must not claim Decisions API evidence")
+    coordinator = raw.get("coordinator")
+    if (not isinstance(coordinator, dict)
+            or set(coordinator) != {"agent_id", "model", "effort", "provenance"}
+            or coordinator.get("model") != "gpt-6-luna" or coordinator.get("effort") != "medium"
+            or coordinator.get("provenance") != "host_reported"):
+        raise ValueError("native coordinator requires gpt-6-luna/medium host-reported provenance")
+    agent_id = _text(coordinator.get("agent_id"), "native coordinator agent id", 256)
+    if _redact(agent_id) != agent_id or any(character.isspace() or ord(character) < 32 for character in agent_id):
+        raise ValueError("native coordinator agent id must not contain credentials or whitespace")
+    if config is not None and (config["coordinator_model"], config["coordinator_effort"]) != (
+            coordinator["model"], coordinator["effort"]):
+        raise ValueError("native coordinator differs from configured coordinator")
+    return {"status": "planned", "backend": "codex", "simulation": False,
+            "decision_source": NATIVE_DECISION_SOURCE, "selected_model": raw["selected_model"],
+            "requested_effort": raw["requested_effort"], "coordinator": dict(coordinator)}
+
+
+def _plan(raw, config=None):
     if not isinstance(raw, dict):
         raise ValueError("plan must be an object")
     if raw.get("status") == "blocked":
         return {"status": "blocked", "reason": _redact(str(raw.get("reason", "decision_blocked")))}
+    if raw.get("decision_source") == NATIVE_DECISION_SOURCE:
+        return _native_plan(raw, config)
     if (raw.get("status") != "planned" or raw.get("decision_source") != "luna_decisions"
             or raw.get("simulation") is not False or raw.get("backend") != "codex"
             or any(raw.get(flag) is not True for flag in
@@ -307,12 +339,12 @@ class WorkflowStore:
         return self._change(job_id, change)
 
     def record_decision(self, job_id, task_id, plan):
-        plan = _plan(plan)
         def change(connection, doc):
             task = self._task_open(doc, task_id, {"deciding"})
-            task["plan"] = plan
-            task["status"] = "ready" if plan["status"] == "planned" else "routing_blocked"
-            self._event(connection, doc, "decision_recorded", task_id, status=task["status"], plan=plan)
+            saved_plan = _plan(plan, doc["job"]["config"])
+            task["plan"] = saved_plan
+            task["status"] = "ready" if saved_plan["status"] == "planned" else "routing_blocked"
+            self._event(connection, doc, "decision_recorded", task_id, status=task["status"], plan=saved_plan)
         return self._change(job_id, change)
 
     def claim_dispatch(self, job_id, task_id):
@@ -330,12 +362,15 @@ class WorkflowStore:
             task["status"] = "dispatching"
             task["dispatch_id"] = uuid.uuid4().hex
             plan = task["plan"]
+            provenance = {"provenance": plan["decision_source"]}
+            if plan["decision_source"] == NATIVE_DECISION_SOURCE:
+                provenance["coordinator"] = dict(plan["coordinator"])
             self._event(connection, doc, "dispatch_claimed", task_id, dispatch_id=task["dispatch_id"],
-                        model=plan["selected_model"], effort=plan["requested_effort"])
+                        model=plan["selected_model"], effort=plan["requested_effort"], **provenance)
             return {"job_id": job_id, "task_id": task_id, "dispatch_id": task["dispatch_id"],
                     "project": str(project), "model": plan["selected_model"], "effort": plan["requested_effort"],
                     "objective": task["objective"], "write_scopes": task["write_scopes"],
-                    "depends_on": task["depends_on"], "provenance": "luna_decisions",
+                    "depends_on": task["depends_on"], **provenance,
                     "agent_id_source": "host_reported", "worker_header": "[LUNA ROUTER WORKER]"}
         return self._change(job_id, change)
 
