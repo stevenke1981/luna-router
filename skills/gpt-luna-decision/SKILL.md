@@ -1,73 +1,49 @@
 ---
 name: gpt-luna-decision
-description: Execute tasks through required-online GPT-6 Luna Decisions, then a real Codex worker. Luna picks model and effort instantly; dispatch without asking the user or adding review rounds. Default live=true. Never silently fall back to offline or stop at a plan.
+description: Route project work through real online Luna Decisions and execute through the configured Luna workflow or selected Codex worker; use for concrete tasks needing implementation, coordination, or a live route.
+metadata:
+  short-description: Route and execute project work with Luna Decisions
 ---
-# GPT Luna Decisions — Required Online v2.7.0
 
-## Decide and dispatch immediately — no asking, no review loop
-Call `luna_run` as the FIRST action for a concrete work request. Do not ask the
-user to confirm the route, the model, the effort, the Decisions API call, or the
-data policy; the defaults (live=true, metadata_only) are already authorized.
-Luna's valid answer IS the decision — both model and reasoning effort: the
-engine dispatches the selected worker at once with Luna's effort (no local
-complexity floor), even when Luna's probabilities are low (noted as
-`luna_low_certainty_accepted`). Do not re-plan, second-guess, or call
-`luna_plan` first. The Codex worker runs with `approval_policy="never"` inside
-its sandbox, so it does not stop for approval. After the worker finishes, run
-the task's own tests once; do not start extra review rounds. Only stop and
-report when the engine returns `blocked` (missing key, API/HTTP error, invalid
-answer) — report the reason instead of asking what to do.
+# Luna Decisions and workflow execution
 
-## Synchronous call; workers never re-route
-`luna_run` returns only after the worker turn finishes, which can take many
-minutes for real work; keep waiting (the MCP timeout is 1900 s), do not abandon
-it. A task that begins with `[LUNA ROUTER WORKER]` means you ARE the dispatched
-worker: do the work directly and never call `luna_run`/`luna_plan` or the CLI.
+Use real Luna Decisions for worker routes. Default online mode is `live=true`; default data policy is `metadata_only`. Never invent a route, replace a failed decision with local policy, or claim a fixture is live evidence. Do not ask the user whether to route or which model/effort to use when this skill applies.
 
-## Execute, do not simulate
-For a concrete work request, invoke **luna_router_v270 / luna_run**, not luna_plan.
-Omitting `live` means `true` in both schema AND implementation. Never insert
-`live:false`, `--offline`, `--routing local`, `--demo`, or a simulation unless
-the user explicitly requests local routing / a demo. Missing credentials, a
-catalog problem, or a failed POST is not permission to select offline.
+## Choose the operation
 
-If MCP is not connected, execute the installed CLI with its absolute path:
+- For a multi-step project goal, start a durable workflow with `luna_workflow_start(project, tasks, config?)` or CLI `workflow start --request <UTF-8 JSON file>`.
+- For a route-only question, use `luna_decide(job_id, task_id)` or CLI `workflow decide --request <UTF-8 JSON file>`. This returns a route and never starts a worker.
+- Dispatch only after a successful real decision, using `luna_workflow_dispatch(job_id, task_id)` or CLI `workflow dispatch --request <UTF-8 JSON file>`.
+- For a focused single worker task, preserve the existing `luna_run` CLI path when the project does not need a multi-agent workflow.
+
+Use the installed CLI with its absolute executable and engine paths if MCP tools are unavailable:
 
 ```powershell
-& '{{PYTHON_PATH}}' '{{ROUTER_PATH}}' run --prompt-file '<UTF-8 task file>' --project '<absolute project path>'
+& '{{PYTHON_PATH}}' '{{ROUTER_PATH}}' workflow start --request '<UTF-8 JSON file>'
 ```
 
-The installer replaces both placeholders. Do not use an older copy in another
-folder. No subcommand on `luna.py` defaults to **run**, never plan.
+The installer substitutes `{{PYTHON_PATH}}` and `{{ROUTER_PATH}}`. Do not use an older copy from another folder. Existing `luna_run` remains synchronous and returns only after its worker turn ends.
 
-## Data and fees
-The user requested online routing; use `data_policy:"metadata_only"` by default.
-Only fixed task classification metadata is sent to Luna (not project contents,
-paths, credentials, task text or unapproved summaries). Codex receives the actual
-work prompt. `no_external` must be respected; report a conflict rather than
-ignoring it. Only read `OPENROUTER_API_KEY` from the process or Windows User/System
-environment. Do not inspect credential files or print the key. OpenRouter handles
-spend limits; do not add local USD checks. Free workers retain zero-price checks.
+## Native agent dispatch
 
-## Verify each stage
-The engine requires actual Luna evidence before worker dispatch, even when there
-is one eligible candidate or a user-pinned worker (Luna still chooses effort).
-`luna_status` / `doctor` are not inference. `luna_plan` / `plan` do not run work.
-A cache is not a new call; new strict jobs make a fresh POST. Existing genuine
-Luna retry jobs preserve provenance and do not repeat the decision each attempt.
-Report `decision_source`, `decision_model_called`, `decision_response_id`,
-`worker_started`, `worker_completed`, acceptance, and the installed entrypoint.
-No response ID means "not supplied", never invent one.
-If Luna fails or is rejected, surface status/reason/HTTP code; do not claim success.
+The host, not MCP, creates visible native UI agents. For each task with a valid Decisions result, use its dispatch descriptor to call native `spawn_agent` with `fork_turns="none"`, `model=<descriptor.model>`, and `reasoning_effort=<descriptor.effort>`. Do not silently choose a fallback model. Record the host's native agent ID before marking the task running. If spawn outcome is uncertain, record it and do not replay the call.
 
-Use `luna.py probe` for a single live connection test independent of Codex discovery.
-Do not claim Windows/live acceptance from fixture tests.
+Coordinator and integrator are configured fixed roles, not Decisions-selected workers. Defaults are coordinator `gpt-6-luna` / `low`, integrator `gpt-6.1-sol` / `high`, and `max_parallel=2`; workflow config may override these. Luna Decisions selects each worker model and effort. Keep concurrently running tasks' write scopes disjoint and respect dependencies and the parallel limit.
 
-## Existing behavior preserved
-Two independently verified failures at the same model/effort advance one native
-effort level, reset the count, and at the native ceiling advance a model tier.
-Transport/auth/quota errors are not problem-solving failures. Use `--job-id`,
-`--verify-argv-file`, and `--auto-retry` only with a real acceptance command.
-`runtime_controller.py` is still an unconnected in-flight switching prototype.
-This controls launched workers; it does not change the current ChatGPT UI model.
-If `LUNA_ROUTER_WORKER=1`, execute assigned work; do not recursively call the router.
+Read the installed runtime's `config.json` workflow section. If the host is not already the configured coordinator, start that visible native role with its configured model/effort and this skill path; label it `user_configured_coordinator`. A coordinator must not start another coordinator recursively. Project-local `.agents/skills/luna-workflow/SKILL.md`, when present, provides the complete request examples.
+
+## Durable progress and completion
+
+Record observable host actions and tool evidence with `luna_workflow_event(job_id, task_id?, action, agent_id?, summary?, outcome?, evidence?)`. Use actions `started`, `progress`, `completed`, `integration_started`, and `integration_completed`. Read snapshots/events with `luna_workflow_status(job_id, after?)`. These records contain actions, statuses, and evidence, not hidden chain-of-thought. Host-native UI logs are the source for visible agent activity; ledger summaries do not make a background CLI process into a native agent.
+
+CLI request files contain the same JSON object as MCP arguments; use absolute file paths. Put acceptance criteria in each task's `objective`. Event fields are action-specific: `started` requires `task_id,agent_id`; `progress` requires `task_id,summary`; `completed` requires `task_id,outcome` and permits `evidence`; `integration_started` requires only `agent_id`; `integration_completed` requires `outcome` and permits `evidence`. All require `job_id,action`; reject other fields. `outcome` must be `completed`, `failed`, `blocked`, or `unknown`, never prose. Example: `{"job_id":"<id>","task_id":"task-01","action":"completed","outcome":"completed","evidence":"Observed result"}`. An uncertain spawn remains `dispatching`; without a native ID, report in the Host conversation and do not send `started` or `progress`.
+
+After task results, claim `luna_workflow_integrate(job_id)` and spawn the returned configured integrator descriptor, then record integration events. Run independent checks through `luna_workflow_verify(job_id, check_file)`; verification invokes a local check definition and records actual exit code and output hash. The check definition is `{"argv":["python","-m","unittest"],"timeout_seconds":300}` with a command appropriate to the project. Commands run without a shell in the project directory. A worker's completed turn or an integrator summary alone is not acceptance. Claim workflow completion only when required tasks, integration, and independent verification have successful evidence.
+
+## Failure behavior and data boundary
+
+The quick decision operation retries only HTTP 500/502/503/504, at most three attempts and at most five seconds between attempts. Authentication, quota, ambiguous transport failures, malformed responses, invalid decisions, and policy failures remain blocked until the condition changes. Continue independent coordinator/integrator work and other branches when a worker route is blocked, but never dispatch a worker without a valid decision. Never recursively invoke the router from a `[LUNA ROUTER WORKER]` task.
+
+For `metadata_only`, send fixed classification metadata only, not objective text, project path, source, secrets, or unapproved summaries. `live:false` is an explicit offline request and must not be reported as a Luna decision. Read API keys from process or Windows User/System environment only; never print the key or inspect credential files.
+
+Report these stages separately: real Decisions response, native agent dispatch and ID, worker turn completion, integration, and independent verification. Luna Router controls launched workers and does not switch the current conversation model.

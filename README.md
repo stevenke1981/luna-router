@@ -1,14 +1,20 @@
 # Luna Router
 
-版本：v2.7.0（Windows CLI 修正與 live 驗收）
+版本：v2.7.0（可見多 Agent workflow 與 live 驗收）
 
-此版修正的是**執行入口不保證呼叫 Luna**，不是重新命名 Auto。
+預設協作方式：使用者提出目標 → Luna 協調拆分 → Luna Decisions 為每項任務選模型與 effort → Host 啟動可見原生 agents → Sol 整合 → 獨立驗收。
 
-## 實際預設
+專案已提供 [decision workflow skill](.agents/skills/luna-workflow/SKILL.md)，由 [AGENTS.md](AGENTS.md) 指示 agents 使用；完整請求範例見 [工作流程文件](docs/WORKFLOW.md)。`.codex/config.toml` 設定新的受信任專案工作階段以 `gpt-6-luna/low` 啟動；`config.json` 的 `workflow` 設定協調模型、整合模型（預設 `gpt-6.1-sol/high`）及 `max_parallel`（預設 2）。這些設定不會切換已開啟對話的模型。
+
+`luna_decide` 只取得真實決策並立即回傳，派工由 `luna_workflow_dispatch` 與 Host 原生 `spawn_agent` 分開處理。可在 Host 看到 agent 工具動作，並透過 `luna_workflow_status` 查閱持久化事件。MCP 本身不建立原生 UI agent；缺少原生代理工具的 Host 必須如實回報。
+
+舊 `luna_run` 是同步入口，會等待整個 worker 回合完成，因此可能耗時數分鐘；多步驟工作改用 workflow，避免把完整執行時間誤認為路由時間。單一決策失敗只阻塞相關任務，獨立工作繼續；HTTP 500/502/503/504 最多嘗試三次，認證、配額、結果不明的傳輸及無效決策不自動重試。沒有成功決策就不派送該 worker，也不重播結果不明的派工或驗證命令。
+
+## 相容 CLI 的實際預設
 
 - `luna.py` 未指定子命令時執行 `run`；不是 `plan`。
 - `run`／`plan` 預設 `luna`；`auto` 也要求真實 Luna 決策成功。只有明確 `--offline`／`--routing local` 才走本地規則。
-- 沒有 Key、連線失敗、HTTP 錯誤或回應不合法時，中止並回報錯誤。低信心的有效決策仍直接派工，記錄 `luna_low_certainty_accepted`。**不會退回 local_policy 假裝成功。**
+- 沒有 Key、連線失敗、HTTP 錯誤或回應不合法時，回報該決策錯誤，獨立工作仍可繼續。低信心的有效決策仍直接派工，記錄 `luna_low_certainty_accepted`。**不會退回 local_policy 假裝成功。**
 - 只有一個候選或指定 worker 時，仍呼叫 Luna 決定推理程度；不因這些條件跳過模型。
 - 每個新的 strict job 發出新的決策請求，不以舊快取冒充當次呼叫。既有、具 Luna 來源證據的重試工作不會每次重叫決策模型。
 - 舊設定的 `default_mode: local` 不再能隱性覆寫上述 CLI 預設；明確禁止外送的 `no_external` 仍優先保護，與線上模式衝突就報錯。

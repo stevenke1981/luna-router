@@ -1,0 +1,10 @@
+{
+  "installed_manifest_files": 165,
+  "source_runtime_module_hashes_match": true,
+  "installed_skill_bound": true,
+  "fresh_mcp_workflow_tools": 7,
+  "fresh_mcp_start_status": "passed",
+  "inference_performed": false,
+  "native_worker_started": false,
+  "restart_current_host_required": true
+}

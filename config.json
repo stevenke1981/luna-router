@@ -170,5 +170,12 @@
     "note": "auto/luna require successful online Luna; local only via explicit --offline/--routing local. Missing key is an error. Fixed metadata only by default.",
     "require_luna_for_auto": true,
     "new_job_fresh_decision": true
+  },
+  "workflow": {
+    "coordinator_model": "gpt-6-luna",
+    "coordinator_effort": "low",
+    "integrator_model": "gpt-6.1-sol",
+    "integrator_effort": "high",
+    "max_parallel": 2
   }
 }

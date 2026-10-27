@@ -57,6 +57,9 @@ def main(argv=None):
                 options['errors'] = 'backslashreplace'
             reconfigure(**options)
     args = list(sys.argv[1:] if argv is None else argv)
+    if args and args[0] == 'workflow':
+        from workflow_service import main as workflow_main
+        return workflow_main(args[1:])
     if args and args[0]=='probe':
         parser=argparse.ArgumentParser(description='One live Luna API request. No Codex worker. Uses OpenRouter key spend settings.')
         parser.add_argument('--output')

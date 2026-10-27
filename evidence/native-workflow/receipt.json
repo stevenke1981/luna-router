@@ -1,0 +1,299 @@
+{
+  "job_id": "2a2ed2ef64a943fa9a1ccb9c7e319653",
+  "status": "completed",
+  "config": {
+    "coordinator_model": "gpt-6-luna",
+    "coordinator_effort": "low",
+    "integrator_model": "gpt-6.1-sol",
+    "integrator_effort": "high",
+    "max_parallel": 2
+  },
+  "tasks": [
+    {
+      "id": "sum",
+      "status": "completed",
+      "agent_id": "/root/live_sum",
+      "plan": {
+        "status": "planned",
+        "selected_model": "gpt-6-luna",
+        "requested_effort": "low",
+        "backend": "codex",
+        "simulation": false,
+        "decision_source": "luna_decisions",
+        "decision_model": "openai/gpt-6-luna-decisions",
+        "decision_call_attempted": true,
+        "decision_response_received": true,
+        "decision_model_called": true,
+        "decision_response_id": "gen-dec-1793078888-6wVMIcUmrOydOM6C34q6",
+        "decision_metrics": {
+          "model": "openai/gpt-6-luna-decisions-20261006",
+          "selected_id": "gpt-6-luna",
+          "effort": "low"
+        }
+      }
+    },
+    {
+      "id": "maximum",
+      "status": "completed",
+      "agent_id": "/root/live_maximum",
+      "plan": {
+        "status": "planned",
+        "selected_model": "gpt-6-luna",
+        "requested_effort": "low",
+        "backend": "codex",
+        "simulation": false,
+        "decision_source": "luna_decisions",
+        "decision_model": "openai/gpt-6-luna-decisions",
+        "decision_call_attempted": true,
+        "decision_response_received": true,
+        "decision_model_called": true,
+        "decision_response_id": "gen-dec-1793078939-kLN5yQ6ArkHdQKzIfd2e",
+        "decision_metrics": {
+          "model": "openai/gpt-6-luna-decisions-20261006",
+          "selected_id": "gpt-6-luna",
+          "effort": "low"
+        }
+      }
+    }
+  ],
+  "integration": {
+    "status": "completed",
+    "agent_id": "/root/live_integration",
+    "model": "gpt-6.1-sol",
+    "effort": "high",
+    "provenance": "user_configured_integrator",
+    "outcome": "completed",
+    "evidence": "/root/live_integration read source and both worker files, recomputed and wrote integrated.json; readback exit 0."
+  },
+  "verification": {
+    "outcome": "passed",
+    "evidence_kind": "verifier",
+    "exit_code": 0,
+    "check_id": "08961e259f8f2a861fb5b02d4dd50cffa0f2b08d1e50a9d62174235cb5dbf247",
+    "evidence_sha256": "3f0c2db8de0d5f13c2c018c4aa9698f006b82b7f87079918f7c573bcad691b19"
+  },
+  "events": [
+    {
+      "seq": 1,
+      "kind": "job_created",
+      "task_id": null,
+      "data": {
+        "task_count": 2,
+        "evidence_scope": "host_reported_local_ledger"
+      },
+      "created_at": "2026-10-27T05:28:07.368716+00:00"
+    },
+    {
+      "seq": 2,
+      "kind": "decision_started",
+      "task_id": "sum",
+      "data": {},
+      "created_at": "2026-10-27T05:28:07.517969+00:00"
+    },
+    {
+      "seq": 3,
+      "kind": "decision_recorded",
+      "task_id": "sum",
+      "data": {
+        "status": "ready",
+        "plan": {
+          "status": "planned",
+          "selected_model": "gpt-6-luna",
+          "requested_effort": "low",
+          "backend": "codex",
+          "simulation": false,
+          "decision_source": "luna_decisions",
+          "decision_model": "openai/gpt-6-luna-decisions",
+          "decision_call_attempted": true,
+          "decision_response_received": true,
+          "decision_model_called": true,
+          "decision_response_id": "gen-dec-1793078888-6wVMIcUmrOydOM6C34q6",
+          "decision_metrics": {
+            "model": "openai/gpt-6-luna-decisions-20261006",
+            "selected_id": "gpt-6-luna",
+            "effort": "low"
+          }
+        }
+      },
+      "created_at": "2026-10-27T05:28:09.081082+00:00"
+    },
+    {
+      "seq": 4,
+      "kind": "decision_started",
+      "task_id": "maximum",
+      "data": {},
+      "created_at": "2026-10-27T05:28:59.484446+00:00"
+    },
+    {
+      "seq": 5,
+      "kind": "decision_recorded",
+      "task_id": "maximum",
+      "data": {
+        "status": "ready",
+        "plan": {
+          "status": "planned",
+          "selected_model": "gpt-6-luna",
+          "requested_effort": "low",
+          "backend": "codex",
+          "simulation": false,
+          "decision_source": "luna_decisions",
+          "decision_model": "openai/gpt-6-luna-decisions",
+          "decision_call_attempted": true,
+          "decision_response_received": true,
+          "decision_model_called": true,
+          "decision_response_id": "gen-dec-1793078939-kLN5yQ6ArkHdQKzIfd2e",
+          "decision_metrics": {
+            "model": "openai/gpt-6-luna-decisions-20261006",
+            "selected_id": "gpt-6-luna",
+            "effort": "low"
+          }
+        }
+      },
+      "created_at": "2026-10-27T05:29:00.532574+00:00"
+    },
+    {
+      "seq": 6,
+      "kind": "dispatch_claimed",
+      "task_id": "sum",
+      "data": {
+        "dispatch_id": "ee4bc591a83a4da8bca4d7b461537ab9",
+        "model": "gpt-6-luna",
+        "effort": "low"
+      },
+      "created_at": "2026-10-27T05:29:00.706233+00:00"
+    },
+    {
+      "seq": 7,
+      "kind": "dispatch_claimed",
+      "task_id": "maximum",
+      "data": {
+        "dispatch_id": "2e831e58663f41fbbd7dcf20693cf72a",
+        "model": "gpt-6-luna",
+        "effort": "low"
+      },
+      "created_at": "2026-10-27T05:29:00.713997+00:00"
+    },
+    {
+      "seq": 8,
+      "kind": "agent_started",
+      "task_id": "sum",
+      "data": {
+        "agent_id": "/root/live_sum",
+        "evidence_scope": "host_reported"
+      },
+      "created_at": "2026-10-27T05:31:48.959991+00:00"
+    },
+    {
+      "seq": 9,
+      "kind": "agent_started",
+      "task_id": "maximum",
+      "data": {
+        "agent_id": "/root/live_maximum",
+        "evidence_scope": "host_reported"
+      },
+      "created_at": "2026-10-27T05:31:48.967653+00:00"
+    },
+    {
+      "seq": 10,
+      "kind": "agent_progress",
+      "task_id": "sum",
+      "data": {
+        "summary": "Native agent read input, wrote owned JSON and read back; host observed 43093"
+      },
+      "created_at": "2026-10-27T05:32:05.627040+00:00"
+    },
+    {
+      "seq": 11,
+      "kind": "agent_turn_completed",
+      "task_id": "sum",
+      "data": {
+        "outcome": "completed",
+        "evidence": "Native agent final message and host read-back confirmed owned JSON.",
+        "acceptance": "not_verified"
+      },
+      "created_at": "2026-10-27T05:32:05.634743+00:00"
+    },
+    {
+      "seq": 12,
+      "kind": "agent_progress",
+      "task_id": "maximum",
+      "data": {
+        "summary": "Native agent read input, wrote owned JSON and read back; host observed 9322"
+      },
+      "created_at": "2026-10-27T05:32:05.642007+00:00"
+    },
+    {
+      "seq": 13,
+      "kind": "agent_turn_completed",
+      "task_id": "maximum",
+      "data": {
+        "outcome": "completed",
+        "evidence": "Native agent final message and host read-back confirmed owned JSON.",
+        "acceptance": "not_verified"
+      },
+      "created_at": "2026-10-27T05:32:05.649879+00:00"
+    },
+    {
+      "seq": 14,
+      "kind": "integration_claimed",
+      "task_id": null,
+      "data": {
+        "status": "dispatching",
+        "agent_id": null,
+        "model": "gpt-6.1-sol",
+        "effort": "high",
+        "provenance": "user_configured_integrator"
+      },
+      "created_at": "2026-10-27T05:32:07.504540+00:00"
+    },
+    {
+      "seq": 15,
+      "kind": "integration_started",
+      "task_id": null,
+      "data": {
+        "agent_id": "/root/live_integration",
+        "evidence_scope": "host_reported"
+      },
+      "created_at": "2026-10-27T05:32:19.176700+00:00"
+    },
+    {
+      "seq": 16,
+      "kind": "integration_turn_completed",
+      "task_id": null,
+      "data": {
+        "outcome": "completed",
+        "evidence": "/root/live_integration read source and both worker files, recomputed and wrote integrated.json; readback exit 0.",
+        "acceptance": "not_verified"
+      },
+      "created_at": "2026-10-27T05:33:10.029808+00:00"
+    },
+    {
+      "seq": 17,
+      "kind": "verification_claimed",
+      "task_id": null,
+      "data": {
+        "status": "claimed",
+        "claim_id": "584110ddb00c4179aa52d3b5f2ff10b6",
+        "claimed_at": "2026-10-27T05:33:10.037868+00:00",
+        "evidence_scope": "host_reported_verifier"
+      },
+      "created_at": "2026-10-27T05:33:10.037884+00:00"
+    },
+    {
+      "seq": 18,
+      "kind": "verification_recorded",
+      "task_id": null,
+      "data": {
+        "outcome": "passed",
+        "evidence_kind": "verifier",
+        "exit_code": 0,
+        "check_id": "08961e259f8f2a861fb5b02d4dd50cffa0f2b08d1e50a9d62174235cb5dbf247",
+        "evidence_sha256": "3f0c2db8de0d5f13c2c018c4aa9698f006b82b7f87079918f7c573bcad691b19",
+        "evidence_scope": "host_reported_verifier"
+      },
+      "created_at": "2026-10-27T05:33:10.104576+00:00"
+    }
+  ],
+  "mcp_fresh_process_status": "completed",
+  "scope": "real Decisions + host native workers + configured native integrator + independent local verifier"
+}

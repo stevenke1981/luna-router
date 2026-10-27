@@ -15,6 +15,7 @@ import re
 import uuid
 
 import codex_backend
+from decision_retry import decide_with_retry
 from credentials import resolve_key, key_status
 import openrouter_backend as orb
 from decision import DECISION_MODEL, assess_decision, build_request, is_decision_model, parse_response
@@ -172,7 +173,7 @@ def conservative_fallback(task, candidates):
     return fallback_route(task, known or candidates)
 
 
-def make_plan(task, config, runtime, text_catalog, decisions_catalog, online=False, ledger=None, job=None, auto_metadata=False, require_luna=False, fresh_decision=False):
+def make_plan(task, config, runtime, text_catalog, decisions_catalog, online=False, ledger=None, job=None, auto_metadata=False, require_luna=False, fresh_decision=False, decision_retry_attempts=1, decision_event=None):
     candidates = build_candidates(task, config, runtime, text_catalog)
     if not candidates and require_luna:
         return {"version": VERSION, "status": "blocked", "stage": "capabilities",
@@ -231,12 +232,15 @@ def make_plan(task, config, runtime, text_catalog, decisions_catalog, online=Fal
                     raise ValueError("Live inference requires a request counter")
                 # Count requests to prevent loops. NO local money reservation or
                 # per-request/daily USD limit for OpenRouter-paid Luna Decisions.
-                ledger.reserve(job, "decision")
                 decision_cost["new_request"] = True
                 attempted = True
                 emit_event("luna_request_started", model=DECISION_MODEL,
                            endpoint="/api/alpha/decisions")
-                raw = orb.decide(body, decision_model, decision_policy)
+                attempts = []
+                notes.append({'decision_attempts': attempts})
+                raw = decide_with_retry(body, decision_model, decision_policy, ledger, job,
+                                        max_attempts=decision_retry_attempts, attempts=attempts,
+                                        emit=decision_event or emit_event)
                 response_received = True
                 emit_event("luna_response_received", model=raw.get("model"),
                            response_id=raw.get("id"))

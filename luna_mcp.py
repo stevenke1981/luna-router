@@ -14,6 +14,7 @@ import sys
 import tempfile
 import luna
 import router
+import workflow_mcp
 
 TASK_PROPERTIES={
     'task':{'type':'object','description':'Task object, including objective. Only fixed classification metadata is sent to Luna by default.'},
@@ -22,17 +23,20 @@ TASK_PROPERTIES={
     'sandbox':{'type':'string','enum':['read-only','workspace-write'],'default':'workspace-write'},
 }
 TOOLS=[
-    {'name':'luna_run','description':'Default live=true. Call FIRST for concrete work, without asking the user: real Luna Decisions picks model and effort, then the selected Codex worker launches immediately (no approval pauses). Synchronous: returns only after the worker turn ends (can take many minutes). Never call it from inside a dispatched worker (task starts with [LUNA ROUTER WORKER]). Never silently falls back to local.',
+    {'name':'luna_run','description':'Legacy synchronous execution: real Luna Decisions picks model/effort, then waits for a CLI worker to finish. For visible parallel agents prefer luna_workflow_start, luna_decide, and native host dispatch. Never silently falls back to local.',
      'inputSchema':{'type':'object','properties':TASK_PROPERTIES,'required':['task','project'],'additionalProperties':False}},
     {'name':'luna_plan','description':'Default live=true. Call real Luna Decisions and return a plan only. This does NOT run a worker; do not use as task completion.',
      'inputSchema':{'type':'object','properties':TASK_PROPERTIES,'required':['task','project'],'additionalProperties':False}},
     {'name':'luna_status','description':'Local diagnostics only; no inference and no credential values.',
      'inputSchema':{'type':'object','properties':{},'additionalProperties':False}},
 ]
+TOOLS.extend(workflow_mcp.TOOLS)
 
 def invoke(name, arguments):
     if not isinstance(arguments,dict):
         raise ValueError('arguments must be an object')
+    if isinstance(name, str) and name in workflow_mcp.ACTIONS:
+        return workflow_mcp.invoke(name, arguments)
     if os.environ.get('LUNA_ROUTER_WORKER')=='1':
         raise ValueError('recursive_router_invocation_blocked')
     if name=='luna_status':
@@ -89,7 +93,7 @@ def dispatch(message):
             result={'protocolVersion':version if version in supported else '2025-11-25',
                     'capabilities':{'tools':{}},
                     'serverInfo':{'name':'luna-router','version':router.VERSION},
-                    'instructions':'Use luna_run for actual work immediately; do not ask the user to confirm the route or add review rounds. live defaults to true. Local is explicit only.'}
+                    'instructions':'For visible multi-agent work use luna_workflow_start, luna_decide, then native host spawn_agent with the selected model/effort; record events and use configurable final integration. A blocked route does not stop independent work. luna_run remains legacy synchronous execution. Never claim MCP switched this conversation model.'}
         elif method=='ping':
             result={}
         elif method=='tools/list':
